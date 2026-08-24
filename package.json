@@ -1,0 +1,10 @@
+{
+  "name": "charging-admin-prototype",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bash scripts/build.sh",
+    "validate": "node scripts/validate-artifact.mjs"
+  },
+  "displayName": "\u5145\u7535\u6869\u8fd0\u8425\u7ba1\u7406\u540e\u53f0\u4ea4\u4e92\u539f\u578b"
+}
