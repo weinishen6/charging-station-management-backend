@@ -153,4 +153,35 @@ context.state.page = "发票管理";
 context.render();
 assertIncludes(elements.get("content").innerHTML, "按老平台进行迁移", "发票管理");
 
+context.state.page = "场站管理";
+context.state.detail = null;
+const stationForm = context.stationFormV9(context.stations[0]);
+assertIncludes(stationForm, "联系方式", "场站联系方式");
+assertIncludes(stationForm, 'type="time"', "营业时间选择器");
+assertIncludes(stationForm, 'class="field-label required" for="f-plan">收费方案', "收费方案必填");
+const stationActions = context.menuActions("station").map((item) => item[0]);
+if (stationActions.includes("设备监控") || stationActions.includes("查看订单")) {
+  throw new Error("场站列表操作栏仍包含设备监控或查看订单");
+}
+context.state.detail = { kind: "station", id: context.stations[0].id, title: context.stations[0].name };
+context.state.detailTab = "基础信息";
+context.render();
+assertIncludes(elements.get("content").innerHTML, "station-photo-carousel", "场站图片轮播");
+assertIncludes(elements.get("content").innerHTML, "联系方式", "场站详情联系方式");
+if (elements.get("content").innerHTML.includes('data-kind="station" data-id="' + context.stations[0].id + '">编辑')) {
+  throw new Error("场站详情仍展示编辑入口");
+}
+context.state.detailTab = "收费方案";
+context.render();
+assertIncludes(elements.get("content").innerHTML, "station-month-dot", "月度收费方案切换");
+context.state.detailTab = "充电订单";
+context.render();
+assertIncludes(elements.get("content").innerHTML, "商户订单号", "场站订单商户号");
+assertIncludes(elements.get("content").innerHTML, "手续费 (元)", "场站订单手续费");
+
+const pricingForm = context.planFormV9(null);
+assertIncludes(pricingForm, "深谷", "深谷价格类别");
+if (pricingForm.includes("配置名称")) throw new Error("收费方案仍包含配置名称字段");
+assertIncludes(context.periodTableV9(context.plans[0].periods), "电费", "收费详情价格拼接示例");
+
 console.log("Inline script and key route render checks passed");
