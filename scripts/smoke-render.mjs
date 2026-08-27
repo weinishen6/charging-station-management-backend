@@ -163,6 +163,15 @@ const stationActions = context.menuActions("station").map((item) => item[0]);
 if (stationActions.includes("设备监控") || stationActions.includes("查看订单")) {
   throw new Error("场站列表操作栏仍包含设备监控或查看订单");
 }
+const stationMenuButton = new StubElement();
+stationMenuButton.dataset = { kind: "station", id: context.stations[0].id };
+context.showMenu(stationMenuButton);
+assertIncludes(elements.get("actionMenu").innerHTML, "查看详情", "场站更多菜单");
+assertIncludes(elements.get("actionMenu").innerHTML, "编辑场站", "场站更多菜单");
+assertIncludes(elements.get("actionMenu").innerHTML, "删除场站", "场站更多菜单");
+if (elements.get("actionMenu").innerHTML.includes("设备监控") || elements.get("actionMenu").innerHTML.includes("查看订单")) {
+  throw new Error("实际渲染的场站更多菜单仍包含旧入口");
+}
 context.state.detail = { kind: "station", id: context.stations[0].id, title: context.stations[0].name };
 context.state.detailTab = "基础信息";
 context.render();
