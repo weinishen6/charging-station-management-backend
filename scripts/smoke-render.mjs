@@ -145,6 +145,47 @@ context.render();
 const pileCards = elements.get("content").innerHTML;
 if (pileCards.includes("pile-select")) throw new Error("充电桩卡片模式仍包含选择框");
 if (pileCards.includes("批量操作")) throw new Error("充电桩卡片模式仍包含批量操作");
+assertIncludes(pileCards, "批量导入", "充电桩批量导入入口");
+assertIncludes(pileCards, "充电能力", "充电桩统计新维度");
+if (pileCards.includes("连接状态")) throw new Error("充电桩顶部仍包含重复的连接状态统计");
+const pileForm = context.pileFormV11(context.piles[0]);
+if (pileForm.includes("充电枪配置") || pileForm.includes("f-gun-type")) {
+  throw new Error("充电桩表单仍包含充电枪配置区域");
+}
+context.openPileImportV11();
+assertIncludes(elements.get("modalBody").innerHTML, "下载导入模板", "充电桩导入模板入口");
+assertIncludes(elements.get("modalBody").innerHTML, "pileImportFile", "充电桩上传文件入口");
+context.state.detail = { kind: "pile", id: context.piles[0].id, title: context.piles[0].name };
+context.state.detailTab = "设备信息";
+context.render();
+if (elements.get("content").innerHTML.includes('data-tab="充电枪"')) {
+  throw new Error("充电桩详情仍包含充电枪配置页签");
+}
+context.state.detail = null;
+
+context.state.page = "充电枪管理";
+context.state.gunView = "list";
+context.state.keyword = "";
+context.state.filters = {};
+context.render();
+const gunList = elements.get("content").innerHTML;
+assertIncludes(gunList, "充电状态", "充电枪充电状态维度");
+assertIncludes(gunList, "插枪", "充电枪插枪统计");
+assertIncludes(gunList, "在线状态", "充电枪在线状态维度");
+assertIncludes(gunList, "离线", "充电枪离线统计");
+assertIncludes(gunList, "故障状态", "充电枪故障独立维度");
+assertIncludes(gunList, "树状列表", "充电枪视图切换");
+if (gunList.includes("新增充电枪")) throw new Error("充电枪列表仍包含新增入口");
+assertIncludes(gunList, "交流代表慢充", "枪类型悬停说明");
+const gunForm = context.gunFormV11(context.guns[0]);
+assertIncludes(gunForm, 'id="f-pile" disabled', "所属充电桩禁用");
+assertIncludes(gunForm, 'id="f-type" disabled', "枪类型禁用");
+context.state.gunView = "tree";
+context.state.expandedGunPiles = [context.guns[0].pileId];
+context.render();
+const gunTree = elements.get("content").innerHTML;
+assertIncludes(gunTree, "gun-tree-table", "充电枪树状列表");
+assertIncludes(gunTree, context.guns[0].id, "树状列表展开充电枪");
 
 context.state.page = "充电桩日志";
 context.render();
