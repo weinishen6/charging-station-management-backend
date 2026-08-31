@@ -155,6 +155,26 @@ if (pileForm.includes("充电枪配置") || pileForm.includes("f-gun-type")) {
 context.openPileImportV11();
 assertIncludes(elements.get("modalBody").innerHTML, "下载导入模板", "充电桩导入模板入口");
 assertIncludes(elements.get("modalBody").innerHTML, "pileImportFile", "充电桩上传文件入口");
+if (elements.get("modalBody").innerHTML.includes(".csv") || elements.get("modalBody").innerHTML.includes("导入前将校验设备编码唯一性")) {
+  throw new Error("批量导入弹窗仍包含 CSV 格式或已删除的校验说明");
+}
+context.state.pileView = "list";
+context.state.selectedPiles = [context.piles[0].id];
+context.render();
+const pileListV12 = elements.get("content").innerHTML;
+assertIncludes(pileListV12, "批量导出二维码", "充电桩批量二维码导出");
+assertIncludes(pileListV12, "批量固件升级", "充电桩批量固件升级入口");
+assertIncludes(pileListV12, "批量重启", "充电桩批量重启入口");
+assertIncludes(pileListV12, "批量设备对时", "充电桩批量设备对时入口");
+if (!pileListV12.includes("disabled")) throw new Error("充电桩暂未开放的批量操作未禁用");
+const pileActionsV12 = context.menuActions("pile");
+for (const label of ["重启设备", "设备对时", "固件升级"]) {
+  const item = pileActionsV12.find((action) => action[0] === label);
+  if (!item || !item[2] || !item[2].disabled) throw new Error(`${label} 未显示为禁用操作`);
+}
+context.confirmDelete("station", context.stations[0].id);
+assertIncludes(elements.get("modalBody").innerHTML, "已绑定设备存在进行中订单时将禁止删除", "删除提示文案");
+if (elements.get("modalBody").innerHTML.includes("关联业务记录")) throw new Error("删除提示仍包含关联业务记录");
 context.state.detail = { kind: "pile", id: context.piles[0].id, title: context.piles[0].name };
 context.state.detailTab = "设备信息";
 context.render();
@@ -175,6 +195,8 @@ assertIncludes(gunList, "在线状态", "充电枪在线状态维度");
 assertIncludes(gunList, "离线", "充电枪离线统计");
 assertIncludes(gunList, "故障状态", "充电枪故障独立维度");
 assertIncludes(gunList, "树状列表", "充电枪视图切换");
+assertIncludes(gunList, "gunSelectAll", "充电枪列表全选");
+assertIncludes(gunList, "gun-export-v12", "充电枪列表导出");
 if (gunList.includes("新增充电枪")) throw new Error("充电枪列表仍包含新增入口");
 assertIncludes(gunList, "交流代表慢充", "枪类型悬停说明");
 const gunForm = context.gunFormV11(context.guns[0]);
@@ -196,8 +218,13 @@ assertIncludes(elements.get("content").innerHTML, "按老平台进行迁移", "�
 
 context.state.page = "场站管理";
 context.state.detail = null;
+context.state.stationView = "list";
+context.state.selectedStations = [context.stations[0].id, context.stations[1].id];
 context.render();
 const stationOverview = elements.get("content").innerHTML;
+assertIncludes(stationOverview, "stationSelectAll", "场站列表全选");
+assertIncludes(stationOverview, "station-export-v12", "场站列表导出");
+assertIncludes(stationOverview, "导出 Excel（2）", "场站多选导出数量");
 assertIncludes(stationOverview, "device-overview-separated", "场站设备统计维度拆分");
 assertIncludes(stationOverview, "充电状态", "场站设备充电状态");
 assertIncludes(stationOverview, "插枪", "场站设备插枪状态");
