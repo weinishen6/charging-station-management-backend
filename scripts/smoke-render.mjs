@@ -148,9 +148,12 @@ if (pileCards.includes("批量操作")) throw new Error("充电桩卡片模式�
 assertIncludes(pileCards, "批量导入", "充电桩批量导入入口");
 assertIncludes(pileCards, "充电能力", "充电桩统计新维度");
 if (pileCards.includes("连接状态")) throw new Error("充电桩顶部仍包含重复的连接状态统计");
-const pileForm = context.pileFormV11(context.piles[0]);
+const pileForm = context.pileForm(context.piles[0]);
 if (pileForm.includes("充电枪配置") || pileForm.includes("f-gun-type")) {
   throw new Error("充电桩表单仍包含充电枪配置区域");
+}
+if (pileForm.includes("充电枪由设备协议自动上报，请在")) {
+  throw new Error("充电桩表单仍包含已删除的自动上报提示文案");
 }
 context.openPileImportV11();
 assertIncludes(elements.get("modalBody").innerHTML, "下载导入模板", "充电桩导入模板入口");
@@ -178,9 +181,25 @@ if (elements.get("modalBody").innerHTML.includes("关联业务记录")) throw ne
 context.state.detail = { kind: "pile", id: context.piles[0].id, title: context.piles[0].name };
 context.state.detailTab = "设备信息";
 context.render();
-if (elements.get("content").innerHTML.includes('data-tab="充电枪"')) {
-  throw new Error("充电桩详情仍包含充电枪配置页签");
-}
+assertIncludes(elements.get("content").innerHTML, 'data-tab="充电枪"', "充电桩详情充电枪页签");
+context.state.detailTab = "充电枪";
+context.render();
+assertIncludes(elements.get("content").innerHTML, "充电枪信息", "充电桩详情充电枪信息");
+assertIncludes(elements.get("content").innerHTML, "在线状态", "充电桩详情充电枪在线状态");
+context.state.detail = null;
+
+context.state.page = "活动管理";
+context.render();
+assertIncludes(elements.get("content").innerHTML, "任务状态", "活动列表任务状态");
+const campaignApprovalForm = context.campaignForm(context.campaigns[0]);
+assertIncludes(campaignApprovalForm, "是否需要审批", "活动审批配置");
+assertIncludes(campaignApprovalForm, "审批运营商", "活动审批运营商");
+assertIncludes(campaignApprovalForm, "审批人员", "活动审批人员");
+context.state.detail = { kind: "campaign", id: context.campaigns[0].id, title: context.campaigns[0].name };
+context.state.detailTab = "活动信息";
+context.render();
+assertIncludes(elements.get("content").innerHTML, "任务状态", "活动详情任务状态");
+assertIncludes(elements.get("content").innerHTML, "是否需要审批", "活动详情审批方式");
 context.state.detail = null;
 
 context.state.page = "充电枪管理";
