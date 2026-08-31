@@ -155,6 +155,13 @@ assertIncludes(elements.get("content").innerHTML, "按老平台进行迁移", "�
 
 context.state.page = "场站管理";
 context.state.detail = null;
+context.render();
+const stationOverview = elements.get("content").innerHTML;
+assertIncludes(stationOverview, "device-overview-separated", "场站设备统计维度拆分");
+assertIncludes(stationOverview, "充电状态", "场站设备充电状态");
+assertIncludes(stationOverview, "插枪", "场站设备插枪状态");
+assertIncludes(stationOverview, "在线状态", "场站设备在线状态");
+assertIncludes(stationOverview, "device-online-fault", "在线设备故障标记");
 const stationForm = context.stationFormV9(context.stations[0]);
 assertIncludes(stationForm, "联系方式", "场站联系方式");
 assertIncludes(stationForm, 'type="time"', "营业时间选择器");
