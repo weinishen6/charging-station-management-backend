@@ -287,4 +287,39 @@ assertIncludes(pricingForm, "深谷", "深谷价格类别");
 if (pricingForm.includes("配置名称")) throw new Error("收费方案仍包含配置名称字段");
 assertIncludes(context.periodTableV9(context.plans[0].periods), "电费", "收费详情价格拼接示例");
 
+context.state.detail = null;
+context.state.page = "用户管理";
+context.state.userManagementTab = "用户列表";
+context.state.keyword = "";
+context.state.filters = {};
+context.render();
+const userListV14 = elements.get("content").innerHTML;
+assertIncludes(userListV14, "启用状态", "用户列表启用状态");
+assertIncludes(userListV14, "user-status-switch", "用户启停开关");
+assertIncludes(userListV14, "车辆数量", "用户列表车辆数量");
+if (!context.users.some((user) => user.vehicles.length > 1)) throw new Error("用户数据未体现多车辆与 VIN");
+context.state.detail = { kind: "user", id: context.users[0].id, title: context.users[0].nickname };
+context.state.detailTab = "车辆与 VIN";
+context.render();
+const userVehicleDetailV14 = elements.get("content").innerHTML;
+assertIncludes(userVehicleDetailV14, "新增车辆", "用户详情新增车辆");
+assertIncludes(userVehicleDetailV14, context.users[0].vehicles[1].vin, "用户详情多车辆 VIN");
+for (const tab of ["钱包记录", "充电订单", "参与活动"]) {
+  context.state.detailTab = tab;
+  context.render();
+  assertIncludes(elements.get("content").innerHTML, "user-detail-pager", `${tab}分页`);
+  assertIncludes(elements.get("content").innerHTML, "共 ", `${tab}记录总数`);
+}
+context.state.detail = null;
+const manualPanelV14 = context.groupManualPanelV14();
+assertIncludes(manualPanelV14, "选择运营商", "手动名单运营商入口");
+assertIncludes(manualPanelV14, "选择场站", "手动名单场站入口");
+assertIncludes(manualPanelV14, "选择用户", "手动名单用户入口");
+assertIncludes(manualPanelV14, "已选择", "手动名单选择数量");
+const dynamicPanelV14 = context.groupDynamicPanelV14(null);
+assertIncludes(dynamicPanelV14, "浙江省", "地区规则省份选择");
+assertIncludes(dynamicPanelV14, "杭州市", "地区规则城市选择");
+assertIncludes(dynamicPanelV14, "group-district-v14", "地区规则多选区县");
+assertIncludes(dynamicPanelV14, "全部满足", "分组规则全部满足");
+
 console.log("Inline script and key route render checks passed");
