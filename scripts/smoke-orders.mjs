@@ -53,6 +53,7 @@ for (const label of ["充电时间", "持续时间", "订单原价", "优惠抵�
   includes(list, label, "订单分组表头");
 }
 for (const label of ["完整金额", "关键字段"]) includes(list, label, "订单字段视图");
+includes(list, "免费订单", "免费订单标识");
 includes(list, "请输入订单编号/商户订单号/设备编号", "订单查询提示词");
 includes(list, "所属场站 / 运营商", "订单归属字段");
 if (list.includes("主订单口径") || list.includes("需运营处理") || list.includes("支付超时") || list.includes("商户：")) {
@@ -60,6 +61,7 @@ if (list.includes("主订单口径") || list.includes("需运营处理") || list
 }
 if (list.includes("今日") || list.includes("昨日") || list.includes("自定义")) throw new Error("订单顶部仍包含独立统计周期按钮");
 for (const method of ["预付费", "钱包支付", "即充即付"]) includes(context.filterConfig().map((item) => JSON.stringify(item)).join(""), method, "支付方式筛选");
+includes(JSON.stringify(context.filterConfig()), "订单类型", "免费订单筛选");
 if (context.state.filters.createdStart !== "2026-08-01" || context.state.filters.createdEnd !== "2026-08-31") {
   throw new Error("订单下单时间未默认当前数据月份");
 }
@@ -98,9 +100,12 @@ if (guns.includes("同一充电桩的主枪、辅枪服务同一辆重卡")) thr
 context.state.detailTab = "费用与分账";
 context.render();
 const fee = elements.get("content").innerHTML;
-for (const label of ["平台分时计费明细", "设备上报分时计费明细", "设备侧尖峰平谷原始计量数据", "价格类别", "尖", "峰", "平", "总计", "对账结果", "分项合计", "设备上报合计", "优惠与支付", "参与方分账与到账", "支付手续费", "分账手续费", "提现手续费", "运营商", "平台方"]) {
+for (const label of ["平台分时计费明细", "设备上报分时计费明细", "设备侧尖峰平谷原始计量数据", "价格类别", "尖", "峰", "平", "总计", "对账结果", "优惠与支付", "参与方分账与到账", "支付手续费", "分账手续费", "提现手续费", "运营商", "平台方"]) {
   includes(fee, label, "费用与分账");
 }
+if ((fee.match(/<strong>总计<\/strong>/g) || []).length !== 2) throw new Error("两张计费表未各自保留一条总计");
+if ((fee.match(/对账结果：/g) || []).length !== 2) throw new Error("两张计费表总计行未展示对账结果");
+if (fee.includes("billing-reconcile-v22")) throw new Error("计费表下方仍展示重复汇总卡");
 if (fee.includes("＋") || fee.includes("−") || fee.includes("＝") || fee.includes("净到账 =")) throw new Error("费用与分账仍包含已删除的算式符号或说明");
 if (fee.includes(">电费明细<") || fee.includes("服务费时段明细") || fee.includes("仅平台计算")) throw new Error("费用与分账仍包含重复计费明细模块");
 for (const duplicate of ["商户订单号", "设备上报金额", "金额差异"]) {
@@ -128,7 +133,39 @@ for (const label of ["Excel 预览", "订单基础信息", "充电过程信息",
 for (const removed of ["业务订单号", "设备类型", "分账类型", "税费信息", "渠道与平台抽减", "渠道抽减", "订单抽减金额", "卡券抽减金额", "抽减比例 (%)"]) {
   if (exportPreview.includes(removed)) throw new Error(`订单导出仍包含已删除字段：${removed}`);
 }
+const exportRow = context.exportOrderRowV20(context.orders[0]);
+for (const index of [7, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 24, 25, 26]) {
+  if (!/^\d+\.\d{2}$/.test(String(exportRow[index]))) throw new Error(`导出字段未保留两位小数：${index}`);
+}
 context.state.orderExportPreview = false;
+
+const refundForm = context.refundForm(context.orders[0]);
+for (const label of ["可退款金额", "disabled", "退款费用 1", "费用承担方", "添加退款费用", "同一申请可同时包含平台费用和运营商费用", "再次申请时，系统自动以剩余金额为上限"]) includes(refundForm, label, "多费用退费申请");
+
+const orderNav = context.navigation.find((group) => group.group === "订单管理").items.flat();
+const userNav = context.navigation.find((group) => group.group === "用户管理").items.flat();
+if (orderNav.includes("免费充电") || userNav.includes("免费用户配置")) throw new Error("免费订单或免费用户仍保留独立菜单");
+
+context.state.page = "用户管理";
+context.state.detail = null;
+context.state.userManagementTab = "免费用户";
+context.state.keyword = "";
+context.state.filters = {};
+context.render();
+const freeUsers = elements.get("content").innerHTML;
+for (const label of ["用户列表", "用户分组", "免费用户", "请输入用户昵称或手机号", "运营商维度", "场站维度", "免费额度"]) includes(freeUsers, label, "免费用户页签");
+if (freeUsers.includes("规则编号") || freeUsers.includes("单次额度")) throw new Error("免费用户列表仍包含已删除字段");
+const freeForm = context.freeUserForm(null);
+for (const label of ["搜索用户昵称或手机号", "元/月", "配置维度", "范围方式", "运营商维度", "场站维度", "全部", "指定"]) includes(freeForm, label, "免费用户配置");
+if (freeForm.includes("f-limit") || freeForm.includes("单次额度")) throw new Error("免费用户表单仍包含单次额度");
+
+context.state.page = "充电投诉";
+context.state.filters = {};
+const complaintFilters = JSON.stringify(context.filterConfig());
+includes(complaintFilters, "处理状态", "充电投诉筛选");
+if (complaintFilters.includes("业务状态")) throw new Error("充电投诉仍使用业务状态筛选名称");
+const complaintActions = context.menuActions("complaint").flat();
+if (complaintActions.includes("编辑投诉") || complaintActions.includes("edit")) throw new Error("充电投诉仍包含编辑入口");
 
 const stationForm = context.stationForm(context.stations[0]);
 includes(stationForm, "服务与支付设置", "场站服务设置");
