@@ -146,7 +146,7 @@ const pileCards = elements.get("content").innerHTML;
 if (pileCards.includes("pile-select")) throw new Error("充电桩卡片模式仍包含选择框");
 if (pileCards.includes("批量操作")) throw new Error("充电桩卡片模式仍包含批量操作");
 assertIncludes(pileCards, "批量导入", "充电桩批量导入入口");
-assertIncludes(pileCards, "充电能力", "充电桩统计新维度");
+assertIncludes(pileCards, "设备类型", "充电桩统计新维度");
 if (pileCards.includes("连接状态")) throw new Error("充电桩顶部仍包含重复的连接状态统计");
 const pileForm = context.pileForm(context.piles[0]);
 if (pileForm.includes("充电枪配置") || pileForm.includes("f-gun-type")) {
@@ -321,5 +321,48 @@ assertIncludes(dynamicPanelV14, "浙江省", "地区规则省份选择");
 assertIncludes(dynamicPanelV14, "杭州市", "地区规则城市选择");
 assertIncludes(dynamicPanelV14, "group-district-v14", "地区规则多选区县");
 assertIncludes(dynamicPanelV14, "全部满足", "分组规则全部满足");
+
+context.state.detail = null;
+context.state.page = "充电订单";
+context.state.keyword = "";
+context.state.filters = {};
+context.state.orderRange = "今日";
+context.render();
+const orderListV19 = elements.get("content").innerHTML;
+for (const label of ["订单状态", "充电规模", "收入概览", "风险待办"]) {
+  assertIncludes(orderListV19, label, "订单顶部统计");
+}
+for (const label of ["双枪协同", "商户订单号", "应付 / 优惠 / 实收", "重卡"]) {
+  assertIncludes(orderListV19, label, "订单列表关键字段");
+}
+if (orderListV19.includes("总服务费") || orderListV19.includes("总手续费")) {
+  throw new Error("订单顶部仍平铺展示费用构成或结算成本");
+}
+const heavyOrderV19 = context.orders.find((order) => order.chargeMode === "双枪协同");
+if (!heavyOrderV19 || heavyOrderV19.gunSessions.length !== 2) {
+  throw new Error("重卡订单未按一个主单关联两条枪级明细建模");
+}
+context.state.detail = { kind: "order", id: heavyOrderV19.id, title: "充电订单详情" };
+context.state.detailTab = "订单概览";
+context.render();
+const orderOverviewDetailV19 = elements.get("content").innerHTML;
+for (const tab of ["订单概览", "充电枪明细", "费用与分账", "退款记录"]) {
+  assertIncludes(orderOverviewDetailV19, `data-tab="${tab}"`, "订单详情页签");
+}
+for (const oldTab of ["分时计费", "优惠与支付", "手续费与分账"]) {
+  if (orderOverviewDetailV19.includes(`data-tab="${oldTab}"`)) throw new Error(`订单详情仍保留旧页签：${oldTab}`);
+}
+context.state.detailTab = "充电枪明细";
+context.render();
+const orderGunDetailV19 = elements.get("content").innerHTML;
+assertIncludes(orderGunDetailV19, "主枪", "重卡主枪明细");
+assertIncludes(orderGunDetailV19, "辅枪", "重卡辅枪明细");
+assertIncludes(orderGunDetailV19, "枪级计量汇总", "枪级计量汇总");
+context.state.detailTab = "费用与分账";
+context.render();
+const orderFeeDetailV19 = elements.get("content").innerHTML;
+for (const label of ["分时计费明细", "优惠与支付", "参与方分账与净到账", "支付手续费", "分账手续费", "提现手续费", "运营商", "平台方"]) {
+  assertIncludes(orderFeeDetailV19, label, "订单费用与分账看板");
+}
 
 console.log("Inline script and key route render checks passed");
