@@ -44,9 +44,13 @@ context.state.filters = {};
 context.state.orderRange = "今日";
 context.render();
 const list = elements.get("content").innerHTML;
-for (const label of ["订单状态", "充电规模", "收入概览", "风险待办", "双枪协同", "商户单号", "应付 / 优惠 / 实收", "重卡", "已完成", "应收金额"]) {
+for (const label of ["订单状态", "充电规模", "收入概览", "风险待办", "双枪协同", "商户单号", "重卡", "已完成", "应收金额", "活动 / 优惠券 / 会员折扣"]) {
   includes(list, label, "订单列表");
 }
+for (const label of ["充电时间", "持续时间", "订单原价", "优惠抵扣", "结算金额", "订单金额", "电费原价", "服务费原价", "优惠金额", "折扣金额", "手续费金额", "实收金额", "服务费金额", "退款金额"]) {
+  includes(list, label, "订单分组表头");
+}
+for (const label of ["完整金额", "关键字段"]) includes(list, label, "订单字段视图");
 includes(list, "请输入订单编号/商户订单号/设备编号", "订单查询提示词");
 includes(list, "所属场站 / 运营商", "订单归属字段");
 if (list.includes("主订单口径") || list.includes("需运营处理") || list.includes("支付超时") || list.includes("商户：")) {
@@ -64,6 +68,8 @@ includes(abnormalList, "abnormal-selected-v20", "仅看异常订单选中状态"
 if (!abnormalList.includes("✓ 仅看异常订单")) throw new Error("异常订单筛选未展示选中反馈");
 context.state.orderOnlyAbnormal = false;
 if (list.includes("总服务费") || list.includes("总手续费")) throw new Error("订单顶部仍平铺费用构成或结算成本");
+const groups = context.navigation.map((group) => group.group);
+if (groups.at(-1) !== "用户管理" || groups.at(-2) !== "企业管理") throw new Error("菜单顺序未调整为企业管理在前、用户管理置底");
 
 const heavy = context.orders.find((order) => order.chargeMode === "双枪协同");
 if (!heavy || heavy.gunSessions.length !== 2) throw new Error("双枪重卡订单模型不完整");
@@ -84,13 +90,23 @@ context.state.detailTab = "充电枪明细";
 context.render();
 const guns = elements.get("content").innerHTML;
 for (const label of ["主枪", "辅枪", "枪级计量汇总"]) includes(guns, label, "充电枪明细");
+if (guns.includes("同一充电桩的主枪、辅枪服务同一辆重卡")) throw new Error("枪明细仍包含已删除说明文案");
 
 context.state.detailTab = "费用与分账";
 context.render();
 const fee = elements.get("content").innerHTML;
-for (const label of ["分时计费明细", "优惠与支付", "参与方分账与净到账", "支付手续费", "分账手续费", "提现手续费", "运营商", "平台方"]) {
+for (const label of ["平台分时计费明细", "设备上报分时计费明细", "电费明细", "服务费时段明细", "仅平台计算", "优惠与支付", "参与方分账与到账", "支付手续费", "分账手续费", "提现手续费", "运营商", "平台方"]) {
   includes(fee, label, "费用与分账");
 }
+if (fee.includes("＋") || fee.includes("−") || fee.includes("＝") || fee.includes("净到账 =")) throw new Error("费用与分账仍包含已删除的算式符号或说明");
+
+const firstOrder = context.orders[0];
+if (firstOrder.status !== "已完成" || firstOrder.refundStatus !== "已退款") throw new Error("首条订单未形成已退款示例");
+context.state.detail = { kind: "order", id: firstOrder.id, title: "充电订单详情" };
+context.state.detailTab = "退款记录";
+context.render();
+const refund = elements.get("content").innerHTML;
+for (const label of ["退款状态", "累计退款金额", "退款后实收", "充电中断补偿", "已退款"]) includes(refund, label, "首条订单退款记录");
 
 context.state.detail = null;
 context.state.orderExportPreview = true;
