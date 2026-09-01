@@ -44,9 +44,11 @@ context.state.filters = {};
 context.state.orderRange = "今日";
 context.render();
 const list = elements.get("content").innerHTML;
-for (const label of ["订单状态", "充电规模", "收入概览", "风险待办", "双枪协同", "商户单号", "重卡", "已完成", "应收金额", "活动 / 优惠券 / 会员折扣"]) {
+for (const label of ["订单状态", "充电规模", "收入概览", "风险待办", "双枪协同", "商户单号", "重卡", "已完成", "应收金额"]) {
   includes(list, label, "订单列表");
 }
+includes(list, 'title="包括营销活动、优惠券和会员卡折扣等优惠"', "优惠金额悬停提示");
+if (list.includes('class="order-kpi-note-v21"')) throw new Error("收入概览仍展示优惠说明文字");
 for (const label of ["充电时间", "持续时间", "订单原价", "优惠抵扣", "结算金额", "订单金额", "电费原价", "服务费原价", "优惠金额", "折扣金额", "手续费金额", "实收金额", "服务费金额", "退款金额"]) {
   includes(list, label, "订单分组表头");
 }
@@ -83,6 +85,7 @@ for (const oldTab of ["分时计费", "优惠与支付", "手续费与分账"]) 
   if (overview.includes(`data-tab="${oldTab}"`)) throw new Error(`仍包含旧页签：${oldTab}`);
 }
 includes(overview, "充电品牌", "订单详情充电品牌");
+includes(overview, "充电枪编号", "订单详情充电枪编号");
 for (const chart of ["枪线温度", "车辆 SOC", "输出电流", "输出功率"]) includes(overview, chart, "订单运行曲线");
 includes(overview, "order-chart-scope-v20", "双枪曲线枪级切换");
 
@@ -95,10 +98,16 @@ if (guns.includes("同一充电桩的主枪、辅枪服务同一辆重卡")) thr
 context.state.detailTab = "费用与分账";
 context.render();
 const fee = elements.get("content").innerHTML;
-for (const label of ["平台分时计费明细", "设备上报分时计费明细", "电费明细", "服务费时段明细", "仅平台计算", "优惠与支付", "参与方分账与到账", "支付手续费", "分账手续费", "提现手续费", "运营商", "平台方"]) {
+for (const label of ["平台分时计费明细", "设备上报分时计费明细", "设备侧尖峰平谷原始计量数据", "价格类别", "尖", "峰", "平", "总计", "对账结果", "分项合计", "设备上报合计", "优惠与支付", "参与方分账与到账", "支付手续费", "分账手续费", "提现手续费", "运营商", "平台方"]) {
   includes(fee, label, "费用与分账");
 }
 if (fee.includes("＋") || fee.includes("−") || fee.includes("＝") || fee.includes("净到账 =")) throw new Error("费用与分账仍包含已删除的算式符号或说明");
+if (fee.includes(">电费明细<") || fee.includes("服务费时段明细") || fee.includes("仅平台计算")) throw new Error("费用与分账仍包含重复计费明细模块");
+for (const duplicate of ["商户订单号", "设备上报金额", "金额差异"]) {
+  const paymentStart = fee.indexOf("优惠与支付");
+  const settlementStart = fee.indexOf("参与方分账与到账");
+  if (fee.slice(paymentStart, settlementStart).includes(duplicate)) throw new Error(`优惠与支付仍包含重复字段：${duplicate}`);
+}
 
 const firstOrder = context.orders[0];
 if (firstOrder.status !== "已完成" || firstOrder.refundStatus !== "已退款") throw new Error("首条订单未形成已退款示例");
@@ -113,8 +122,11 @@ context.state.orderExportPreview = true;
 context.state.page = "充电订单";
 context.render();
 const exportPreview = elements.get("content").innerHTML;
-for (const label of ["Excel 预览", "订单基础信息", "充电过程信息", "订单原价信息", "订单出账信息", "订单结算信息", "活动优惠信息", "渠道与平台抽减", "税费信息"]) {
+for (const label of ["Excel 预览", "订单基础信息", "充电过程信息", "订单原价信息", "订单出账信息", "订单结算信息", "活动优惠信息", "平台分佣", "商户单号", "持续时间（分钟）", "会员折扣金额", "手续费金额", "平台分佣金额", "平台分佣比例（%）"]) {
   includes(exportPreview, label, "订单导出预览");
+}
+for (const removed of ["业务订单号", "设备类型", "分账类型", "税费信息", "渠道与平台抽减", "渠道抽减", "订单抽减金额", "卡券抽减金额", "抽减比例 (%)"]) {
+  if (exportPreview.includes(removed)) throw new Error(`订单导出仍包含已删除字段：${removed}`);
 }
 context.state.orderExportPreview = false;
 
