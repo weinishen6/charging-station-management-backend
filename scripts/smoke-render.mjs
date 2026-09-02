@@ -1,7 +1,8 @@
 import fs from "node:fs";
 import vm from "node:vm";
 
-const html = fs.readFileSync("YunSuChong_Interactive_Prototype.html", "utf8");
+const htmlPath = process.argv[2] || "YunSuChong_Interactive_Prototype.html";
+const html = fs.readFileSync(htmlPath, "utf8");
 const match = html.match(/<script>([\s\S]*?)<\/script>/);
 if (!match) throw new Error("Inline script missing");
 

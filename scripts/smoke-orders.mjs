@@ -1,7 +1,8 @@
 import fs from "node:fs";
 import vm from "node:vm";
 
-const html = fs.readFileSync("YunSuChong_Interactive_Prototype.html", "utf8");
+const htmlPath = process.argv[2] || "YunSuChong_Interactive_Prototype.html";
+const html = fs.readFileSync(htmlPath, "utf8");
 const match = html.match(/<script>([\s\S]*?)<\/script>/);
 if (!match) throw new Error("Inline script missing");
 
@@ -158,6 +159,54 @@ if (freeUsers.includes("规则编号") || freeUsers.includes("单次额度")) th
 const freeForm = context.freeUserForm(null);
 for (const label of ["搜索用户昵称或手机号", "元/月", "配置维度", "范围方式", "运营商维度", "场站维度", "全部", "指定"]) includes(freeForm, label, "免费用户配置");
 if (freeForm.includes("f-limit") || freeForm.includes("单次额度")) throw new Error("免费用户表单仍包含单次额度");
+for (const label of ["choice-grid-v25", 'name="free-dimension-v25"', 'name="free-mode-v25"']) includes(freeForm, label, "免费用户平铺单选交互");
+if (!context.freeUsers.some((item) => item.quotaValue > 0)) throw new Error("免费用户额度解析失败");
+includes(JSON.stringify(context.filterConfig()), "适用维度", "免费用户筛选");
+includes(JSON.stringify(context.filterConfig()), "状态", "免费用户筛选");
+
+context.state.userManagementTab = "用户分组";
+context.state.filters = {};
+for (const label of ["分组方式", "状态"]) includes(JSON.stringify(context.filterConfig()), label, "用户分组筛选");
+
+const orderNavV25 = context.navigation.find((group) => group.group === "订单管理").items.flat();
+const marketingNavV25 = context.navigation.find((group) => group.group === "营销活动").items.flat();
+const userNavV25 = context.navigation.find((group) => group.group === "用户管理").items.flat();
+includes(orderNavV25.join("/"), "充值订单", "订单管理菜单");
+includes(marketingNavV25.join("/"), "充值管理", "营销活动菜单");
+if (userNavV25.includes("充值管理")) throw new Error("用户管理下仍保留充值管理菜单");
+
+context.state.page = "充值订单";
+context.state.detail = null;
+context.state.keyword = "";
+context.state.filters = {};
+context.render();
+const rechargeOrderList = elements.get("content").innerHTML;
+for (const label of ["实付充值本金", "营销赠送金额", "已退款本金", "充值订单号 / 银联商户号", "充值用户", "充值套餐", "充值本金 / 赠送金", "到账余额 / 已消费", "可退本金", "使用状态", "退款状态", "充值时间", "退款时间", "未使用", "部分使用", "已用完"]) {
+  includes(rechargeOrderList, label, "充值订单列表");
+}
+for (const label of ["余额状态", "退款状态", "充值时间", "dateRange"]) includes(JSON.stringify(context.filterConfig()), label, "充值订单筛选");
+const unusedRefunded = context.rechargeOrdersV25.find((item) => item.balanceState === "未使用" && item.refundStatus === "已退款");
+const partiallyUsed = context.rechargeOrdersV25.find((item) => item.balanceState === "部分使用" && item.refundStatus === "无退款");
+const usedUp = context.rechargeOrdersV25.find((item) => item.balanceState === "已用完");
+if (!unusedRefunded || !partiallyUsed || !usedUp) throw new Error("充值订单未覆盖未用退款、部分使用和已用完场景");
+if (context.rechargeRefundableV25(unusedRefunded) !== 0 || context.rechargeRefundableV25(partiallyUsed) <= 0 || context.rechargeRefundableV25(usedUp) !== 0) {
+  throw new Error("充值本金可退金额计算不正确");
+}
+context.rechargeOrderDetailV25(partiallyUsed);
+for (const label of ["银联商户号", "银联交易流水号", "退款申请时间", "退款单号", "资金账户明细", "充值本金", "营销赠送", "剩余本金", "剩余赠送", "可退本金"]) {
+  includes(elements.get("modalBody").innerHTML, label, "充值订单详情");
+}
+
+context.state.page = "充值管理";
+context.state.keyword = "";
+context.state.filters = {};
+context.render();
+const rechargePackages = elements.get("content").innerHTML;
+for (const label of ["新建充值套餐", "充值金额", "赠送金额", "到账金额", "启用状态", "user-status-switch"]) includes(rechargePackages, label, "充值套餐管理");
+context.rechargePackageModalV25(context.rechargePackagesV25[2]);
+for (const label of ["优惠金额 / 赠送金", "有效期方式", "生效日期", "失效日期", "启用状态", "停用套餐只影响新用户购买"]) {
+  includes(elements.get("modalBody").innerHTML, label, "充值套餐配置");
+}
 
 context.state.page = "充电投诉";
 context.state.filters = {};
