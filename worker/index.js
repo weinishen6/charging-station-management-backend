@@ -801,6 +801,206 @@ const page = `<!doctype html>
     function normalizeReadonlyEnableStatusesV26(){var content=$('content'),html=content.innerHTML;html=html.replace(/<button class="user-status-switch[^\"]*"[^>]*data-action="user-status-toggle-v14"[^>]*>[^<]*<[^>]*button>/g,function(markup){var matchId=markup.match(/data-id="([^"]+)"/),user=matchId?userById(matchId[1]):null;return badge(user&&user.enabled?'启用':'停用')});html=html.replace(/<button class="pile-toggle[^\"]*"[^>]*data-action="toggle-pile-enabled"[^>]*>[^<]*<[^>]*button>(?:<span class="subtext">(?:启用|停用)<[^>]*span>)?/g,function(markup){var matchId=markup.match(/data-id="([^"]+)"/),pile=matchId?pileById(matchId[1]):null;return badge(pile&&pile.enabled?'启用':'停用')});content.innerHTML=html}
     var renderV26Base=render;render=function(){renderV26Base();normalizeReadonlyEnableStatusesV26()};
     document.addEventListener('change',function(event){if(event.target.id==='rechargePackageEffectiveV25'){var dateRange=$('rechargePackageDatesV26');if(dateRange)dateRange.classList.toggle('hidden',event.target.value==='长期有效')}},true);
+
+    /* V27 order, complaint and enterprise experience */
+    var styleV27=document.createElement('style');
+    styleV27.textContent=
+      '.recharge-order-metrics-v27,.enterprise-metrics-v27{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;margin-bottom:18px}'+
+      '.recharge-order-metrics-v27 .metrics,.enterprise-metrics-v27 .metrics{display:contents}'+
+      '.enterprise-order-tag-v27{display:inline-flex!important;width:max-content;margin-top:5px;padding:2px 7px;border-radius:999px;background:#eaf2ff;color:#175cd3!important;font-size:11px;font-weight:700}'+
+      '.complaint-order-link-v27{color:#175cd3!important;text-decoration:none;font-weight:700}.complaint-order-link-v27:hover{text-decoration:underline}'+
+      '#f-refundable-v23{background:#f2f4f7!important;color:#98a2b3!important;cursor:not-allowed!important}'+
+      '.switch-row-v27{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:14px;border:1px solid var(--line);border-radius:10px;background:#f8fafc}.switch-copy-v27{display:grid;gap:3px}.switch-copy-v27 span{font-size:12px;color:var(--muted)}.switch-v27{position:relative;width:44px;height:24px}.switch-v27 input{opacity:0;width:0;height:0}.switch-track-v27{position:absolute;inset:0;border-radius:999px;background:#d0d5dd;cursor:pointer;transition:.2s}.switch-track-v27:after{content:"";position:absolute;width:18px;height:18px;left:3px;top:3px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #667085;transition:.2s}.switch-v27 input:checked+.switch-track-v27{background:#1769e0}.switch-v27 input:checked+.switch-track-v27:after{transform:translateX(20px)}'+
+      '.vehicle-actions-v27{display:flex;gap:8px;justify-content:flex-end}.vehicle-type-v27{display:inline-flex;padding:3px 8px;border-radius:999px;background:#f2f4f7;color:#344054;font-size:12px}.account-summary-v27{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:18px}.account-summary-v27 article{border:1px solid var(--line);border-radius:10px;padding:14px;background:#f8fafc}.account-summary-v27 span{display:block;color:var(--muted);font-size:12px;margin-bottom:7px}.account-summary-v27 strong{font-size:22px}.detail-block-v27+.detail-block-v27{margin-top:20px}.detail-block-head-v27{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.detail-block-head-v27 h3{margin:0;font-size:15px}'+
+      '@media(min-width:761px){.order-overview-v19{grid-template-columns:repeat(4,minmax(0,1fr))!important}.recharge-order-metrics-v27,.enterprise-metrics-v27{grid-template-columns:repeat(5,minmax(0,1fr))!important}}'+
+      '@media(max-width:760px){.order-overview-v19,.recharge-order-metrics-v27,.enterprise-metrics-v27,.account-summary-v27{grid-template-columns:1fr!important}}';
+    document.head.appendChild(styleV27);
+
+    var enterpriseSectionV27=navigation.find(function(section){return section.group==='企业管理'});
+    if(enterpriseSectionV27&&!enterpriseSectionV27.items.some(function(item){return item[0]==='车辆管理'}))enterpriseSectionV27.items.push(['车辆管理','◈']);
+
+    enterprises.forEach(function(company,index){if(typeof company.plugEnabled==='undefined')company.plugEnabled=index!==2});
+    orders.forEach(function(order,index){if(index%3===0)order.enterpriseId=enterprises[index%enterprises.length].id});
+
+    var enterpriseVehiclesV27=[
+      {id:'CL20260001',enterpriseId:enterprises[0].id,plate:'浙A·E5288',vin:'LHGCM82633A102601',vehicleType:'乘用车',driver:'李师傅',phone:'138****3268',created:'2026-08-20'},
+      {id:'CL20260002',enterpriseId:enterprises[0].id,plate:'浙A·D7612',vin:'LSGPC52U8AF102602',vehicleType:'轻型货车',driver:'周师傅',phone:'137****6182',created:'2026-08-21'},
+      {id:'CL20260003',enterpriseId:enterprises[1].id,plate:'苏E·C9036',vin:'LZZ5CLND4JA102603',vehicleType:'重卡',driver:'陈师傅',phone:'139****7506',created:'2026-08-22'},
+      {id:'CL20260004',enterpriseId:enterprises[2].id,plate:'沪B·E1180',vin:'LGBH52E05HY102604',vehicleType:'乘用车',driver:'王师傅',phone:'136****2419',created:'2026-08-23'},
+      {id:'CL20260005',enterpriseId:enterprises[3%enterprises.length].id,plate:'粤B·D6628',vin:'LNBSCC3H9HD102605',vehicleType:'公交车',driver:'赵师傅',phone:'135****8381',created:'2026-08-24'}
+    ];
+    enterprises.forEach(function(company){company.vehicles=enterpriseVehiclesV27.filter(function(vehicle){return vehicle.enterpriseId===company.id}).length});
+
+    function enterpriseCompanyV27(id){return enterprises.find(function(company){return company.id===id})}
+    function enterpriseOrdersV27(company){return orders.filter(function(order){return order.enterpriseId===company.id})}
+    function enterpriseUsedAmountV27(company){return enterpriseOrdersV27(company).reduce(function(sum,order){return sum+Math.max(0,Number(order.paid||0)-Number(order.refund||0))},0)}
+    function enterpriseRechargeAmountV27(company){return recharges.filter(function(item){return item.owner===company.name}).reduce(function(sum,item){return sum+Number(item.amount||0)},0)}
+    function enterpriseVehicleCountV27(company){return enterpriseVehiclesV27.filter(function(vehicle){return vehicle.enterpriseId===company.id}).length}
+    function syncEnterpriseVehiclesV27(){enterprises.forEach(function(company){company.vehicles=enterpriseVehicleCountV27(company)})}
+
+    var filterConfigV27Base=filterConfig;
+    filterConfig=function(){
+      if(state.page==='企业管理')return [{key:'status',label:'账户状态',options:['正常','余额预警'],placeholder:'全部账户状态'},{key:'created',label:'创建时间',type:'dateRange'}];
+      if(state.page==='车辆管理')return [{key:'enterpriseId',label:'关联企业',options:enterprises.map(function(company){return {value:company.id,label:company.name}}),placeholder:'全部企业'},{key:'vehicleType',label:'车辆类型',options:['乘用车','轻型货车','重卡','公交车','其他'],placeholder:'全部车辆类型'},{key:'created',label:'创建时间',type:'dateRange'}];
+      if(state.page==='对账管理'&&state.reconTab==='企业财务')return [{key:'enterpriseId',label:'关联企业',options:enterprises.map(function(company){return {value:company.id,label:company.name}}),placeholder:'全部企业'},{key:'status',label:'账户状态',options:['正常','余额预警'],placeholder:'全部账户状态'}];
+      return filterConfigV27Base();
+    };
+
+    function metricsV27(items,className){return '<div class="'+className+'">'+metrics(items)+'</div>'}
+
+    function renderRechargeOrdersV27(){
+      var records=rechargeOrdersV25.filter(match),actions='<button class="btn" data-action="export">导出 Excel</button>',paid=records.reduce(function(sum,item){return sum+item.payAmount},0),gift=records.reduce(function(sum,item){return sum+item.giftAmount},0),used=records.reduce(function(sum,item){return sum+item.usedAmount},0),refunded=records.reduce(function(sum,item){return sum+item.refundAmount},0);
+      $('content').innerHTML=metricsV27([{label:'充值订单',value:records.length,icon:'▧'},{label:'实付充值本金',value:money(paid),unit:'元',icon:'¥'},{label:'营销赠送金额',value:money(gift),unit:'元',icon:'◇'},{label:'已消费金额',value:money(used),unit:'元',icon:'↗'},{label:'已退款本金',value:money(refunded),unit:'元',icon:'↶'}],'recharge-order-metrics-v27')+'<section class="surface">'+querybar('请输入订单号、商户号、用户名称或手机号')+toolbar('充值订单',records.length,actions)+renderTable(['订单号 / 商户单号','用户信息','充值套餐','本金 / 赠送金','到账余额 / 已消费','使用状态','退款金额 (元)','退款状态','充值时间','退款时间'],records,function(item){var user=userById(item.userId),pack=rechargePackageByIdV25(item.packageId);return '<tr><td><div class="recharge-order-id-v25"><strong class="code">'+item.id+'</strong><span class="code">'+item.unionMerchantId+'</span></div></td><td><div class="recharge-user-v25"><strong>'+esc(user?user.nickname:'—')+'</strong><span>'+esc(user?user.phone:'—')+'</span></div></td><td>'+esc(pack?pack.name:'自定义')+'</td><td><div class="recharge-money-v25"><strong>'+money(item.payAmount)+' 元</strong><span>赠送 '+money(item.giftAmount)+' 元</span></div></td><td><div class="recharge-money-v25"><strong>'+money(item.creditedAmount)+' 元</strong><span>已用 '+money(item.usedAmount)+' 元</span></div></td><td>'+badge(item.balanceState)+'</td><td>'+money(item.refundAmount)+'</td><td>'+badge(item.refundStatus)+'</td><td>'+item.rechargeTime+'</td><td>'+item.refundTime+'</td><td class="actions">'+actionButton('recharge-order-v25',item.id)+'</td></tr>'})+'</section>';
+    }
+    renderRechargeOrdersV25=renderRechargeOrdersV27;
+
+    function complaintRefundDataV27(item){
+      var linked=refunds.filter(function(refund){return refund.orderId===item.orderId}),amount=linked.reduce(function(sum,refund){return sum+Number(refund.amount||0)},0);
+      return {amount:amount,status:linked.length?(linked.some(function(refund){return refund.status==='待审批'})?'退款中':linked.some(function(refund){return refund.status==='已退款'})?'已退款':linked[0].status):'无退款'};
+    }
+    function complaintPendingV27(item){return refunds.some(function(refund){return refund.orderId===item.orderId&&refund.status==='待审批'})||item.status==='退费处理中'}
+    function renderComplaintsV27(){
+      var records=complaints.filter(match),actions='<button class="btn" data-action="export">导出 Excel</button>';
+      $('content').innerHTML=metricsV27([{label:'投诉总数',value:records.length,icon:'△'},{label:'待处理',value:records.filter(function(item){return item.status==='待处理'}).length,icon:'◷',className:'metric-warning'},{label:'处理中',value:records.filter(function(item){return item.status==='处理中'}).length,icon:'↻'},{label:'退费处理中',value:records.filter(function(item){return item.status==='退费处理中'}).length,icon:'↶',className:'metric-warning'},{label:'已完结',value:records.filter(function(item){return item.status==='已完结'}).length,icon:'✓'}],'recharge-order-metrics-v27')+'<section class="surface">'+querybar('请输入投诉单号、订单号或手机号')+toolbar('充电投诉',records.length,actions)+renderTable(['投诉单号','提交时间','订单号 / 商户单号','用户信息','所属场站 / 运营商','投诉类型 / 内容','处理状态','退款金额 (元)','退款状态','处理人','处理意见'],records,function(item){var station=stationById(item.stationId),refund=complaintRefundDataV27(item);return '<tr><td class="code">'+item.id+'</td><td>'+item.created+'</td><td><div class="complaint-order-links-v24"><button class="btn-link code complaint-order-link-v27" data-action="detail" data-kind="order" data-id="'+item.orderId+'">'+item.orderId+'</button><button class="btn-link code complaint-order-link-v27" data-action="detail" data-kind="order" data-id="'+item.orderId+'">'+esc(item.merchantOrderId)+'</button></div></td><td class="complaint-cell-v24"><strong>'+esc(item.userName)+'</strong><span>'+esc(item.phone)+'</span></td><td class="complaint-cell-v24"><strong>'+esc(station?station.name:'—')+'</strong><span>'+esc(item.operator)+'</span></td><td class="complaint-cell-v24"><strong>'+esc(item.type)+'</strong><span>'+esc(item.content)+'</span></td><td>'+badge(item.status)+'</td><td><strong>'+money(refund.amount)+'</strong></td><td>'+badge(refund.status)+'</td><td>'+esc(item.handler||'—')+'</td><td>'+esc(item.opinion||'暂未填写')+'</td><td class="actions">'+actionButton('complaint',item.id)+'</td></tr>'})+'</section>';
+    }
+    renderComplaints=renderComplaintsV27;
+
+    function complaintDetailBodyV27(item){
+      var order=orderById(item.orderId),station=stationById(item.stationId),linked=refunds.filter(function(refund){return refund.orderId===item.orderId});
+      if(state.detailTab==='投诉与订单')return '<div class="detail-block-v27"><div class="detail-block-head-v27"><h3>投诉信息</h3></div><div class="info-grid">'+info('投诉单号',item.id)+info('处理状态',badge(item.status))+info('提交时间',item.created)+info('投诉类型',esc(item.type))+info('用户名称',esc(item.userName))+info('用户手机号',esc(item.phone))+info('所属场站',esc(station?station.name:'—'))+info('所属运营商',esc(item.operator))+info('处理人',esc(item.handler||'—'))+info('处理意见',esc(item.opinion||'暂未填写'))+'</div><div class="form-section">投诉内容</div><div class="complaint-text-v24">'+esc(item.content)+'</div></div><div class="detail-block-v27"><div class="detail-block-head-v27"><h3>关联订单</h3></div><div class="info-grid">'+info('平台订单号','<button class="btn-link code complaint-order-link-v27" data-action="detail" data-kind="order" data-id="'+order.id+'">'+order.id+'</button>')+info('商户单号','<button class="btn-link code complaint-order-link-v27" data-action="detail" data-kind="order" data-id="'+order.id+'">'+esc(order.merchantOrderId)+'</button>')+info('订单状态',badge(order.status))+info('订单金额',money(order.payable)+' 元')+info('实收金额',money(order.paid-order.refund)+' 元')+info('充电量',money(order.quantity)+' kWh')+info('充电桩编码',esc(order.pileId))+info('充电时间',order.created+' 至 '+order.finished)+'</div></div>';
+      var processRows=(item.processRecords||[]).map(function(record){return [record.time,esc(record.action),esc(record.handler),esc(record.opinion),badge(record.status)]});
+      return '<div class="detail-block-v27"><div class="detail-block-head-v27"><h3>处理记录</h3></div>'+(processRows.length?simpleTable(['记录时间','处理动作','处理人','处理意见','处理状态'],processRows):'<div class="placeholder">暂无处理记录</div>')+'</div><div class="detail-block-v27"><div class="detail-block-head-v27"><h3>退款记录</h3></div>'+(linked.length?simpleTable(['退款单号','退款金额 (元)','费用承担方','退款原因','审批状态','申请时间'],linked.map(function(refund){return [refund.id,money(refund.amount),esc(refund.source),esc(refund.reason),badge(refund.status),refund.time]})):'<div class="placeholder">暂无退款记录</div>')+'</div>';
+    }
+
+    function renderEnterprisesV27(){
+      syncEnterpriseVehiclesV27();
+      var records=enterprises.filter(match),usedTotal=enterprises.reduce(function(sum,company){return sum+enterpriseUsedAmountV27(company)},0),actions='<button class="btn btn-primary" data-action="drawer" data-kind="enterprise">＋ 新增企业</button><button class="btn" data-action="export">导出 Excel</button>';
+      $('content').innerHTML=metricsV27([{label:'合作企业',value:enterprises.length,icon:'▦'},{label:'企业预付余额',value:money(enterprises.reduce(function(sum,item){return sum+item.balance},0)),unit:'元',icon:'¥'},{label:'已使用余额',value:money(usedTotal),unit:'元',icon:'↗'},{label:'企业车辆',value:enterpriseVehiclesV27.length,icon:'◈'},{label:'余额预警',value:enterprises.filter(function(item){return item.balance<item.threshold}).length,icon:'△',className:'metric-warning'}],'enterprise-metrics-v27')+'<section class="surface">'+querybar('搜索企业名称、联系人或联系电话')+toolbar('企业管理',records.length,actions)+renderTable(['企业编号','企业名称','联系人','联系电话','预付余额 (元)','已使用余额 (元)','剩余额度 (元)','预警阈值 (元)','单次额度 (元)','企业车辆','即插即充','账户状态','创建时间'],records,function(item){return '<tr><td class="code">'+item.id+'</td><td>'+esc(item.name)+'</td><td>'+esc(item.contact)+'</td><td>'+esc(item.phone)+'</td><td>'+money(item.balance+enterpriseUsedAmountV27(item))+'</td><td>'+money(enterpriseUsedAmountV27(item))+'</td><td class="'+(item.balance<item.threshold?'difference':'')+'"><strong>'+money(item.balance)+'</strong></td><td>'+money(item.threshold)+'</td><td>'+money(item.limit)+'</td><td>'+enterpriseVehicleCountV27(item)+'</td><td>'+badge(item.plugEnabled?'启用':'停用')+'</td><td>'+badge(item.balance<item.threshold?'余额预警':'正常')+'</td><td>'+item.created+'</td><td class="actions">'+actionButton('enterprise',item.id)+'</td></tr>'})+'</section>';
+    }
+    renderEnterprises=renderEnterprisesV27;
+
+    var enterpriseFormV27Base=enterpriseForm;
+    enterpriseForm=function(record){
+      var item=record||{plugEnabled:true};
+      return enterpriseFormV27Base(record)+'<div class="form-section">充电能力</div><div class="switch-row-v27"><div class="switch-copy-v27"><strong>即插即充</strong><span>企业级统一开关，企业车辆不再单独配置</span></div><label class="switch-v27"><input id="f-enterprise-plug-v27" type="checkbox" '+(item.plugEnabled!==false?'checked':'')+'><span class="switch-track-v27"></span></label></div>';
+    };
+    var saveDrawerV27Base=saveDrawer;
+    saveDrawer=function(){
+      var isEnterprise=state.drawer&&state.drawer.kind==='enterprise',target=isEnterprise?state.drawer.record:null,plug=isEnterprise&&$('f-enterprise-plug-v27')?$('f-enterprise-plug-v27').checked:true;
+      saveDrawerV27Base();
+      if(isEnterprise){(target||enterprises[0]).plugEnabled=plug;syncEnterpriseVehiclesV27();render()}
+    };
+
+    function enterpriseVehicleModalV27(vehicle,presetEnterpriseId){
+      var item=vehicle||{enterpriseId:presetEnterpriseId||'',plate:'',vin:'',vehicleType:'乘用车',driver:'',phone:'',created:'2026-09-02'};
+      openModal((vehicle?'编辑':'新增')+'企业车辆','<div class="form-grid">'+formSelect('v-enterprise-v27','关联企业',enterprises.map(function(company){return {value:company.id,label:company.name}}),item.enterpriseId,true,true)+formInput('v-plate-v27','车牌号码',item.plate,true)+formInput('v-vin-v27','车辆 VIN',item.vin,true)+formSelect('v-type-v27','车辆类型',['乘用车','轻型货车','重卡','公交车','其他'],item.vehicleType,true)+formInput('v-driver-v27','司机 / 负责人',item.driver,false)+formInput('v-phone-v27','联系电话',item.phone,false)+formInput('v-created-v27','创建时间',item.created,true,'date')+'</div><div class="callout" style="margin-top:14px">即插即充和单次限额由关联企业统一配置，车辆维度不单独控制。</div>',[{label:'保存车辆',action:'enterprise-vehicle-save-v27',id:vehicle?vehicle.id:'',primary:true}]);
+    }
+    function renderEnterpriseVehiclesV27(){
+      var enriched=enterpriseVehiclesV27.map(function(vehicle){return Object.assign({},vehicle,{enterpriseName:(enterpriseCompanyV27(vehicle.enterpriseId)||{}).name||'—'})}),records=enriched.filter(match);
+      $('content').innerHTML=metrics([{label:'车辆档案',value:enterpriseVehiclesV27.length,icon:'◈'},{label:'关联企业',value:new Set(enterpriseVehiclesV27.map(function(vehicle){return vehicle.enterpriseId})).size,icon:'▦'},{label:'乘用车',value:enterpriseVehiclesV27.filter(function(vehicle){return vehicle.vehicleType==='乘用车'}).length,icon:'◇'},{label:'商用车辆',value:enterpriseVehiclesV27.filter(function(vehicle){return vehicle.vehicleType!=='乘用车'}).length,icon:'▤'}])+'<section class="surface">'+querybar('搜索车牌号、VIN、企业或司机')+toolbar('企业车辆管理',records.length,'<button class="btn btn-primary" data-action="enterprise-vehicle-new-v27">＋ 新增车辆</button><button class="btn" data-action="export">导出 Excel</button>')+renderTable(['车辆编号','关联企业','车牌号码','车辆 VIN','车辆类型','司机 / 负责人','联系电话','创建时间'],records,function(vehicle){return '<tr><td class="code">'+vehicle.id+'</td><td>'+esc(vehicle.enterpriseName)+'</td><td><strong>'+esc(vehicle.plate)+'</strong></td><td class="code">'+esc(vehicle.vin)+'</td><td><span class="vehicle-type-v27">'+esc(vehicle.vehicleType)+'</span></td><td>'+esc(vehicle.driver||'—')+'</td><td>'+esc(vehicle.phone||'—')+'</td><td>'+vehicle.created+'</td><td class="actions"><div class="vehicle-actions-v27"><button class="btn btn-sm" data-action="enterprise-vehicle-edit-v27" data-id="'+vehicle.id+'">编辑</button><button class="btn btn-sm" data-action="enterprise-vehicle-delete-v27" data-id="'+vehicle.id+'">删除</button></div></td></tr>'})+'</section>';
+    }
+
+    function enterpriseAccountBodyV27(company){
+      var owned=enterpriseOrdersV27(company),ownedRecharge=recharges.filter(function(item){return item.owner===company.name}),used=enterpriseUsedAmountV27(company),rechargeTotal=enterpriseRechargeAmountV27(company);
+      return (company.balance<company.threshold?'<div class="callout warning" style="margin-bottom:15px">企业账户余额低于预警阈值。</div>':'')+'<div class="account-summary-v27"><article><span>累计充值</span><strong>'+money(rechargeTotal)+' 元</strong></article><article><span>已使用余额</span><strong>'+money(used)+' 元</strong></article><article><span>剩余额度</span><strong>'+money(company.balance)+' 元</strong></article></div><div class="detail-block-v27"><div class="detail-block-head-v27"><h3>充值明细</h3></div>'+simpleTable(['充值编号','充值金额 (元)','充值方式','操作时间','入账状态'],ownedRecharge.map(function(item){return [item.id,money(item.amount),esc(item.method),item.time,badge(item.status)]}))+'</div><div class="detail-block-v27"><div class="detail-block-head-v27"><h3>使用明细</h3></div>'+simpleTable(['订单编号','使用时间','车牌号码','所属场站','使用金额 (元)','订单状态'],owned.map(function(order){return ['<button class="btn-link code complaint-order-link-v27" data-action="detail" data-kind="order" data-id="'+order.id+'">'+order.id+'</button>',order.created,esc(order.plate),esc(stationById(order.stationId).name),money(order.paid-order.refund),badge(order.status)]}))+'</div>';
+    }
+    function enterpriseVehiclesBodyV27(company){
+      var owned=enterpriseVehiclesV27.filter(function(vehicle){return vehicle.enterpriseId===company.id});
+      return '<div class="detail-block-head-v27"><h3>企业车辆</h3><button class="btn btn-primary" data-action="enterprise-vehicle-new-v27" data-enterprise-id="'+company.id+'">＋ 新增车辆</button></div>'+simpleTable(['车辆编号','车牌号码','车辆 VIN','车辆类型','司机 / 负责人','创建时间'],owned.map(function(vehicle){return [vehicle.id,esc(vehicle.plate),esc(vehicle.vin),esc(vehicle.vehicleType),esc(vehicle.driver||'—'),vehicle.created]}));
+    }
+    function enterpriseDetailBodyV27(company){
+      if(state.detailTab==='企业资料')return '<div class="info-grid">'+info('企业编号',company.id)+info('企业名称',esc(company.name))+info('联系人',esc(company.contact))+info('联系电话',esc(company.phone))+info('账户状态',badge(company.balance<company.threshold?'余额预警':'正常'))+info('创建时间',company.created)+info('预付总额',money(company.balance+enterpriseUsedAmountV27(company))+' 元')+info('已使用余额',money(enterpriseUsedAmountV27(company))+' 元')+info('剩余额度',money(company.balance)+' 元')+info('余额预警阈值',money(company.threshold)+' 元')+info('单次充电限额',money(company.limit)+' 元')+info('即插即充',badge(company.plugEnabled?'启用':'停用'))+'</div>';
+      if(state.detailTab==='账户与充值')return enterpriseAccountBodyV27(company);
+      return enterpriseVehiclesBodyV27(company);
+    }
+
+    function enterpriseFinanceRowsV27(){
+      return enterprises.map(function(company){var owned=enterpriseOrdersV27(company),refund=refunds.filter(function(item){return owned.some(function(order){return order.id===item.orderId})&&item.status==='已退款'}).reduce(function(sum,item){return sum+Number(item.amount||0)},0);return {id:'QYCW'+company.id.slice(-4),enterpriseId:company.id,enterpriseName:company.name,recharge:enterpriseRechargeAmountV27(company),used:enterpriseUsedAmountV27(company),refund:refund,remaining:company.balance,vehicles:enterpriseVehicleCountV27(company),status:company.balance<company.threshold?'余额预警':'正常',date:'2026-09-02'}})
+    }
+    var renderReconciliationV27Base=renderReconciliation;
+    renderReconciliation=function(){
+      if(state.reconTab!=='企业财务'){
+        renderReconciliationV27Base();
+        var tabs=$('content').querySelector('.tabs');
+        if(tabs)tabs.insertAdjacentHTML('beforeend','<button class="tab" data-action="recon-tab" data-tab="企业财务">企业财务</button>');
+        return;
+      }
+      var records=enterpriseFinanceRowsV27().filter(match),tabs='<div class="tabs">'+['商家对账','云宿充财务报表总览','充电站财务报表总览','企业财务'].map(function(name){return '<button class="tab '+(state.reconTab===name?'active':'')+'" data-action="recon-tab" data-tab="'+name+'">'+name+'</button>'}).join('')+'</div>',summary=reconSummary([{label:'企业累计充值 (元)',value:money(records.reduce(function(sum,item){return sum+item.recharge},0))},{label:'已使用余额 (元)',value:money(records.reduce(function(sum,item){return sum+item.used},0))},{label:'企业退款 (元)',value:money(records.reduce(function(sum,item){return sum+item.refund},0))},{label:'剩余额度 (元)',value:money(records.reduce(function(sum,item){return sum+item.remaining},0))}]);
+      $('content').innerHTML='<section class="surface">'+tabs+querybar('搜索企业编号或企业名称')+toolbar('企业财务',records.length,'<button class="btn" data-action="export">导出详细 Excel</button>')+summary+renderTable(['企业编号','企业名称','累计充值 (元)','已使用余额 (元)','退款金额 (元)','剩余额度 (元)','企业车辆','账户状态','更新时间'],records,function(item){return '<tr><td class="code">'+item.enterpriseId+'</td><td>'+esc(item.enterpriseName)+'</td><td>'+money(item.recharge)+'</td><td>'+money(item.used)+'</td><td>'+money(item.refund)+'</td><td><strong>'+money(item.remaining)+'</strong></td><td>'+item.vehicles+'</td><td>'+badge(item.status)+'</td><td>'+item.date+'</td><td class="actions"><button class="btn-link" data-action="detail" data-kind="enterprise" data-id="'+item.enterpriseId+'">查看企业</button></td></tr>'})+'</section>';
+    };
+
+    var refundFormV27Base=refundForm;
+    refundForm=function(order){
+      return refundFormV27Base(order).replace('<div class="callout" style="margin-top:13px">同一申请可同时包含平台费用和运营商费用，提交后统一进入财务审批。</div>','');
+    };
+
+    var orderListBodyV27Base=orderListBodyV21;
+    orderListBodyV21=function(records){
+      var html=orderListBodyV27Base(records);
+      records.forEach(function(order){if(!order.enterpriseId)return;var company=enterpriseCompanyV27(order.enterpriseId),needle='<strong class="code">'+esc(order.id)+'</strong><span>'+esc(order.merchantOrderId)+'</span>';html=html.replace(needle,needle+'<span class="enterprise-order-tag-v27">企业订单 · '+esc(company?company.name:'企业客户')+'</span>')});
+      return html;
+    };
+
+    var showMenuV27Base=showMenu;
+    showMenu=function(button){state.menuRecordIdV27=button.dataset.id;showMenuV27Base(button)};
+
+    var menuActionsV27Base=menuActions;
+    menuActions=function(kind){
+      if(kind==='enterprise')return [['查看企业详情','detail'],['车辆管理','enterprise-vehicles-v27'],['登记对公充值','recharge'],['编辑企业','edit']];
+      if(kind==='complaint'){var item=complaints.find(function(record){return record.id===state.menuRecordIdV27}),items=[['查看投诉','complaint-detail']];if(item&&item.status!=='已完结')items.push(['处理投诉','complaint-process-v27']);if(item&&item.status!=='已完结'&&!complaintPendingV27(item))items.push(['提交退费申请','complaint-refund']);return items}
+      return menuActionsV27Base(kind);
+    };
+
+    var applyMenuV27Base=applyMenu;
+    applyMenu=function(command,kind,id){
+      if(command==='enterprise-vehicles-v27'){state.page='车辆管理';state.group='企业管理';state.detail=null;state.detailTab='';state.keyword='';state.filters={enterpriseId:id};state.pageNo=1;render();return}
+      if(command==='complaint-process-v27'){var complaint=complaints.find(function(item){return item.id===id});if(complaint)openComplaintProcessV24(complaint);return}
+      if(command==='complaint-refund'){var targetComplaint=complaints.find(function(item){return item.id===id});if(!targetComplaint||targetComplaint.status==='已完结'||complaintPendingV27(targetComplaint))return;openDrawer('refund-request',targetComplaint.orderId);return}
+      if(command==='recharge-order-refund-v25'){
+        var rechargeItem=rechargeOrderByIdV25(id),refundable=rechargeRefundableV25(rechargeItem);
+        openModal('申请充值退款','<div class="info-grid">'+info('订单号',rechargeItem.id)+info('充值本金',money(rechargeItem.payAmount)+' 元')+info('已消费金额',money(rechargeItem.usedAmount)+' 元')+info('可退本金','<strong>'+money(refundable)+' 元</strong>')+info('退款去向','原支付账户')+'</div><div class="form-field" style="margin-top:14px"><label class="field-label required">退款原因</label><textarea class="textarea" id="rechargeRefundReasonV27" placeholder="请输入退款原因">'+esc(rechargeItem.balanceState==='未使用'?'充值后未使用，申请退还充值本金':'部分消费后，申请退还剩余充值本金')+'</textarea></div><div class="recharge-rule-v25">退款金额按未消费充值本金计算，营销赠送金额不退款，并在退款完成后收回剩余赠送余额。</div>',[{label:'提交退款申请',action:'recharge-order-refund-submit-v27',id:rechargeItem.id,primary:true}]);return
+      }
+      applyMenuV27Base(command,kind,id);
+    };
+
+    var renderDetailV27Base=renderDetail;
+    renderDetail=function(){
+      if(state.detail&&state.detail.kind==='complaint'){
+        var complaint=complaints.find(function(item){return item.id===state.detail.id}),complaintTabs=['投诉与订单','处理与退款'];if(complaintTabs.indexOf(state.detailTab)===-1)state.detailTab=complaintTabs[0];
+        var complaintActions='';if(complaint.status!=='已完结')complaintActions+='<button class="btn" data-action="complaint-process-open-v24" data-id="'+complaint.id+'">处理投诉</button>';if(complaint.status!=='已完结'&&!complaintPendingV27(complaint))complaintActions+='<button class="btn btn-primary" data-action="complaint-refund-open-v27" data-id="'+complaint.id+'">提交退费申请</button>';
+        $('content').innerHTML='<div class="detail-top"><div class="detail-ident"><button class="btn" data-action="back">‹ 返回</button><h2>充电投诉详情</h2><span class="code">'+complaint.id+'</span></div><div class="complaint-detail-actions-v24">'+complaintActions+'</div></div><section class="surface">'+tabsMarkup(complaintTabs)+'<div class="detail-content complaint-detail-content-v24">'+complaintDetailBodyV27(complaint)+'</div></section>';return
+      }
+      if(state.detail&&state.detail.kind==='enterprise'){
+        var company=enterpriseCompanyV27(state.detail.id),enterpriseTabs=['企业资料','账户与充值','企业车辆'];if(enterpriseTabs.indexOf(state.detailTab)===-1)state.detailTab=enterpriseTabs[0];
+        $('content').innerHTML='<div class="detail-top"><div class="detail-ident"><button class="btn" data-action="back">‹ 返回</button><h2>'+esc(company.name)+'</h2><span class="code">'+company.id+'</span></div><button class="btn" data-action="drawer" data-kind="enterprise" data-id="'+company.id+'">编辑企业</button></div><section class="surface">'+tabsMarkup(enterpriseTabs)+'<div class="detail-content">'+enterpriseDetailBodyV27(company)+'</div></section>';return
+      }
+      renderDetailV27Base();
+    };
+
+    var renderV27Base=render;
+    render=function(){if(!state.detail&&state.page==='车辆管理'){buildNavigation();renderEnterpriseVehiclesV27();window.scrollTo(0,0);return}renderV27Base()};
+
+    document.addEventListener('click',function(event){
+      var button=event.target.closest('[data-action]');if(!button)return;var action=button.dataset.action;
+      if(action==='recharge-order-refund-submit-v27'){
+        event.preventDefault();event.stopImmediatePropagation();var rechargeItem=rechargeOrderByIdV25(button.dataset.id),refundable=rechargeRefundableV25(rechargeItem),reason=getValue('rechargeRefundReasonV27').trim();
+        if(rechargeItem.refundStatus!=='无退款'){showToast('该订单已有退款记录，不能重复申请');return}
+        if(refundable<=0){showToast('该订单暂无可退款本金');return}
+        if(!reason){showToast('请填写退款原因');return}
+        rechargeItem.refundStatus='退款处理中';rechargeItem.refundAmount=refundable;rechargeItem.refundApplyTime='2026-09-02 10:30';rechargeItem.refundNo='CZTK'+String(rechargeOrdersV25.length+101);rechargeItem.refundReason=reason;closeModal();render();showToast('退款申请已提交');return
+      }
+      if(action==='complaint-refund-open-v27'){
+        event.preventDefault();event.stopImmediatePropagation();var complaint=complaints.find(function(item){return item.id===button.dataset.id});if(complaint&&complaint.status!=='已完结'&&!complaintPendingV27(complaint))openDrawer('refund-request',complaint.orderId);return
+      }
+      if(action==='enterprise-vehicle-new-v27'){event.preventDefault();event.stopImmediatePropagation();enterpriseVehicleModalV27(null,button.dataset.enterpriseId||state.filters.enterpriseId||'');return}
+      if(action==='enterprise-vehicle-edit-v27'){event.preventDefault();event.stopImmediatePropagation();enterpriseVehicleModalV27(enterpriseVehiclesV27.find(function(vehicle){return vehicle.id===button.dataset.id}));return}
+      if(action==='enterprise-vehicle-save-v27'){
+        event.preventDefault();event.stopImmediatePropagation();var enterpriseId=getValue('v-enterprise-v27'),plate=getValue('v-plate-v27').trim(),vin=getValue('v-vin-v27').trim();if(!enterpriseId||!plate||!vin){showToast('请完善关联企业、车牌号码和车辆 VIN');return}
+        var vehicle=enterpriseVehiclesV27.find(function(item){return item.id===button.dataset.id}),data={enterpriseId:enterpriseId,plate:plate,vin:vin,vehicleType:getValue('v-type-v27'),driver:getValue('v-driver-v27').trim(),phone:getValue('v-phone-v27').trim(),created:getValue('v-created-v27')||'2026-09-02'};if(vehicle)Object.assign(vehicle,data);else enterpriseVehiclesV27.unshift(Object.assign({id:'CL2026'+String(enterpriseVehiclesV27.length+101).padStart(4,'0')},data));syncEnterpriseVehiclesV27();closeModal();render();showToast('企业车辆已保存');return
+      }
+      if(action==='enterprise-vehicle-delete-v27'){event.preventDefault();event.stopImmediatePropagation();var index=enterpriseVehiclesV27.findIndex(function(vehicle){return vehicle.id===button.dataset.id});if(index>-1)enterpriseVehiclesV27.splice(index,1);syncEnterpriseVehiclesV27();render();showToast('企业车辆已删除');return}
+    },true);
+
     /* The station detail renderer already omits the charging-order tab; retain that source behavior. */
     render();
   </script>
