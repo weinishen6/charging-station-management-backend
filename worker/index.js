@@ -1001,6 +1001,121 @@ const page = `<!doctype html>
       if(action==='enterprise-vehicle-delete-v27'){event.preventDefault();event.stopImmediatePropagation();var index=enterpriseVehiclesV27.findIndex(function(vehicle){return vehicle.id===button.dataset.id});if(index>-1)enterpriseVehiclesV27.splice(index,1);syncEnterpriseVehiclesV27();render();showToast('企业车辆已删除');return}
     },true);
 
+
+    /* V28 enterprise ownership and wallet refund workflow */
+    var styleV28=document.createElement('style');
+    styleV28.textContent=
+      '.enterprise-scope-v28{display:flex;align-items:center;gap:8px;padding:4px;border:1px solid var(--line);border-radius:9px;background:#f8fafc}.enterprise-scope-v28 button{border:0;background:transparent;color:#667085;padding:7px 11px;border-radius:6px;cursor:pointer;font-weight:600}.enterprise-scope-v28 button.active{background:#fff;color:#175cd3;box-shadow:0 1px 3px rgba(16,24,40,.12)}'+
+      '.owner-tag-v28{display:inline-flex;padding:3px 8px;border-radius:999px;background:#eef4ff;color:#3538cd;font-size:12px;font-weight:700}.owner-tag-v28.operator{background:#ecfdf3;color:#027a48}'+
+      '.account-summary-v28{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-bottom:18px}.account-summary-v28 article{border:1px solid var(--line);border-radius:10px;padding:14px;background:#f8fafc}.account-summary-v28 span{display:block;color:var(--muted);font-size:12px;margin-bottom:7px}.account-summary-v28 strong{font-size:20px}.wallet-refund-head-v28{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}.wallet-refund-head-v28 h3{margin:0;font-size:15px}.readonly-money-v28{background:#f2f4f7!important;color:#667085!important;cursor:not-allowed!important}.scope-note-v28{display:flex;gap:10px;align-items:flex-start;padding:13px 14px;border:1px solid #b2ddff;background:#eff8ff;border-radius:10px;color:#175cd3}.scope-note-v28 strong{display:block;margin-bottom:3px}.scope-note-v28 span{color:#475467;font-size:12px}'+
+      '@media(max-width:1100px){.account-summary-v28{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:760px){.account-summary-v28{grid-template-columns:1fr}.enterprise-scope-v28{width:100%;overflow:auto}}';
+    document.head.appendChild(styleV28);
+
+    state.enterpriseScopeV28=state.enterpriseScopeV28||'platform';
+    state.currentOperatorV28=state.currentOperatorV28||operators[0];
+    enterprises.forEach(function(company,index){company.operator=company.operator||operators[index%operators.length];company.maintainedBy=company.maintainedBy||(index%2===0?'平台维护':'运营商维护')});
+
+    var enterpriseWalletRefundsV28=[
+      {id:'QYTK202609001',enterpriseId:enterprises[1].id,amount:1200,reason:'车队规模调整，申请退回部分未使用余额',destination:'原对公付款账户',status:'待审批',created:'2026-09-01 14:20',reviewed:'—',reviewer:'—'},
+      {id:'QYTK202608002',enterpriseId:enterprises[2].id,amount:800,reason:'企业账户停用结算',destination:'原对公付款账户',status:'已退款',created:'2026-08-28 10:15',reviewed:'2026-08-29 09:42',reviewer:'周财务'}
+    ];
+    function enterpriseWalletRefundsForV28(company){return enterpriseWalletRefundsV28.filter(function(item){return item.enterpriseId===company.id})}
+    function enterprisePendingRefundV28(company){return enterpriseWalletRefundsForV28(company).filter(function(item){return item.status==='待审批'}).reduce(function(sum,item){return sum+Number(item.amount||0)},0)}
+    function enterpriseAvailableBalanceV28(company){return Math.max(0,Number(company.balance||0)-enterprisePendingRefundV28(company))}
+    function enterpriseCanRefundV28(company){return enterpriseAvailableBalanceV28(company)>0&&!enterpriseWalletRefundsForV28(company).some(function(item){return item.status==='待审批'})}
+    function enterpriseScopeRecordsV28(){var records=enterprises;if(state.enterpriseScopeV28==='operator')records=records.filter(function(company){return company.operator===state.currentOperatorV28});return records}
+    function enterpriseScopeControlsV28(){return '<div class="enterprise-scope-v28" aria-label="企业维护视角"><button class="'+(state.enterpriseScopeV28==='platform'?'active':'')+'" data-action="enterprise-scope-v28" data-scope="platform">平台维护视角</button><button class="'+(state.enterpriseScopeV28==='operator'?'active':'')+'" data-action="enterprise-scope-v28" data-scope="operator">运营商维护视角 · '+esc(state.currentOperatorV28)+'</button></div>'}
+
+    var filterConfigV28Base=filterConfig;
+    filterConfig=function(){
+      if(state.page==='企业管理'){
+        var result=[{key:'status',label:'账户状态',options:['正常','余额预警'],placeholder:'全部账户状态'}];
+        if(state.enterpriseScopeV28==='platform')result.unshift({key:'operator',label:'所属运营商',options:operators,placeholder:'全部运营商'});
+        result.push({key:'maintainedBy',label:'维护主体',options:['平台维护','运营商维护'],placeholder:'全部维护主体'},{key:'created',label:'创建时间',type:'dateRange'});
+        return result
+      }
+      return filterConfigV28Base();
+    };
+
+    function renderEnterprisesV28(){
+      syncEnterpriseVehiclesV27();
+      enterprises.forEach(function(company){company.status=enterpriseAvailableBalanceV28(company)<company.threshold?'余额预警':'正常'});
+      var scoped=enterpriseScopeRecordsV28(),records=scoped.filter(match),usedTotal=scoped.reduce(function(sum,company){return sum+enterpriseUsedAmountV27(company)},0),availableTotal=scoped.reduce(function(sum,company){return sum+enterpriseAvailableBalanceV28(company)},0),actions=enterpriseScopeControlsV28()+'<button class="btn btn-primary" data-action="drawer" data-kind="enterprise">＋ 新增企业</button><button class="btn" data-action="export">导出 Excel</button>';
+      $('content').innerHTML=metricsV27([{label:'合作企业',value:scoped.length,icon:'▦'},{label:'企业钱包余额',value:money(scoped.reduce(function(sum,item){return sum+item.balance},0)),unit:'元',icon:'¥'},{label:'已使用余额',value:money(usedTotal),unit:'元',icon:'↗'},{label:'可用余额',value:money(availableTotal),unit:'元',icon:'◇'},{label:'余额预警',value:scoped.filter(function(item){return item.status==='余额预警'}).length,icon:'△',className:'metric-warning'}],'enterprise-metrics-v27')+'<section class="surface">'+querybar('搜索企业名称、联系人或联系电话')+toolbar('企业管理',records.length,actions)+renderTable(['企业编号','企业名称','所属运营商','维护主体','联系人','联系电话','钱包余额 (元)','退款冻结 (元)','已使用余额 (元)','剩余额度 (元)','企业车辆','即插即充','账户状态','创建时间'],records,function(item){return '<tr><td class="code">'+item.id+'</td><td><strong>'+esc(item.name)+'</strong></td><td>'+esc(item.operator)+'</td><td><span class="owner-tag-v28 '+(item.maintainedBy==='运营商维护'?'operator':'')+'">'+esc(item.maintainedBy)+'</span></td><td>'+esc(item.contact)+'</td><td>'+esc(item.phone)+'</td><td>'+money(item.balance)+'</td><td>'+money(enterprisePendingRefundV28(item))+'</td><td>'+money(enterpriseUsedAmountV27(item))+'</td><td class="'+(item.status==='余额预警'?'difference':'')+'"><strong>'+money(enterpriseAvailableBalanceV28(item))+'</strong></td><td>'+enterpriseVehicleCountV27(item)+'</td><td>'+badge(item.plugEnabled?'启用':'停用')+'</td><td>'+badge(item.status)+'</td><td>'+item.created+'</td><td class="actions">'+actionButton('enterprise',item.id)+'</td></tr>'})+'</section>';
+    }
+    renderEnterprises=renderEnterprisesV28;
+
+    var enterpriseFormV28Base=enterpriseForm;
+    enterpriseForm=function(record){
+      var base=enterpriseFormV28Base(record);
+      if(state.enterpriseScopeV28==='operator')return '<div class="scope-note-v28"><span>▦</span><div><strong>运营商维护企业</strong><span>企业将自动归属当前运营商 '+esc(state.currentOperatorV28)+'，无需重复选择。</span></div></div>'+base;
+      var company=record||{},owner=company.operator||'';
+      return '<div class="form-section">企业归属</div><div class="form-grid">'+formSelect('f-enterprise-operator-v28','所属运营商',operators,owner,true,true)+formInput('f-enterprise-maintainer-v28','维护主体',record?company.maintainedBy:'平台维护',true,'text',true)+'</div>'+base;
+    };
+    var saveDrawerV28Base=saveDrawer;
+    saveDrawer=function(){
+      var enterpriseSave=state.drawer&&state.drawer.kind==='enterprise',record=enterpriseSave?state.drawer.record:null,operator=enterpriseSave?(state.enterpriseScopeV28==='operator'?state.currentOperatorV28:getValue('f-enterprise-operator-v28')):'';
+      if(enterpriseSave&&!operator){showToast('请选择企业所属运营商');return}
+      saveDrawerV28Base();
+      if(enterpriseSave){var company=record||enterprises[0];company.operator=operator;company.maintainedBy=state.enterpriseScopeV28==='operator'?'运营商维护':'平台维护';company.status=enterpriseAvailableBalanceV28(company)<company.threshold?'余额预警':'正常';render()}
+    };
+
+    function openEnterpriseWalletRefundV28(company){
+      var available=enterpriseAvailableBalanceV28(company),pending=enterprisePendingRefundV28(company);
+      openModal('申请企业钱包退款 · '+company.name,'<div class="info-grid">'+info('企业编号',company.id)+info('所属运营商',esc(company.operator))+info('钱包余额',money(company.balance)+' 元')+info('审批中冻结',money(pending)+' 元')+'</div><div class="form-section">退款信息</div><div class="form-grid"><div class="form-field"><label class="field-label">可退款金额</label><div class="input-unit"><input class="input readonly-money-v28" id="enterprise-refundable-v28" value="'+money(available)+'" disabled><span>元</span></div></div>'+formInput('enterprise-refund-amount-v28','申请退款金额 (元)','',true,'number')+formInput('enterprise-refund-destination-v28','退款账户','原对公付款账户',true,'text',true)+'</div><div class="form-section">申请原因</div><textarea class="textarea" id="enterprise-refund-reason-v28" placeholder="请填写企业余额退款原因"></textarea><div class="callout" style="margin-top:13px">提交后进入财务审批；审批期间冻结申请额度，审批通过后扣减企业钱包余额。</div>',[{label:'提交退款申请',action:'enterprise-wallet-refund-submit-v28',id:company.id,primary:true}]);
+    }
+
+    function enterpriseAccountBodyV28(company){
+      var owned=enterpriseOrdersV27(company),ownedRecharge=recharges.filter(function(item){return item.owner===company.name}),used=enterpriseUsedAmountV27(company),rechargeTotal=enterpriseRechargeAmountV27(company),pending=enterprisePendingRefundV28(company),available=enterpriseAvailableBalanceV28(company),refundRecords=enterpriseWalletRefundsForV28(company);
+      return (available<company.threshold?'<div class="callout warning" style="margin-bottom:15px">企业可用余额低于预警阈值。</div>':'')+'<div class="account-summary-v28"><article><span>累计充值</span><strong>'+money(rechargeTotal)+' 元</strong></article><article><span>已使用余额</span><strong>'+money(used)+' 元</strong></article><article><span>钱包余额</span><strong>'+money(company.balance)+' 元</strong></article><article><span>退款冻结</span><strong>'+money(pending)+' 元</strong></article><article><span>剩余额度</span><strong>'+money(available)+' 元</strong></article></div><div class="detail-block-v27"><div class="detail-block-head-v27"><h3>充值明细</h3></div>'+simpleTable(['充值编号','充值金额 (元)','充值方式','操作时间','入账状态'],ownedRecharge.map(function(item){return [item.id,money(item.amount),esc(item.method),item.time,badge(item.status)]}))+'</div><div class="detail-block-v27"><div class="detail-block-head-v27"><h3>使用明细</h3></div>'+simpleTable(['订单编号','使用时间','车牌号码','所属场站','使用金额 (元)','订单状态'],owned.map(function(order){return ['<button class="btn-link code complaint-order-link-v27" data-action="detail" data-kind="order" data-id="'+order.id+'">'+order.id+'</button>',order.created,esc(order.plate),esc(stationById(order.stationId).name),money(order.paid-order.refund),badge(order.status)]}))+'</div><div class="detail-block-v27"><div class="wallet-refund-head-v28"><h3>余额退款记录</h3>'+(enterpriseCanRefundV28(company)?'<button class="btn btn-primary" data-action="enterprise-wallet-refund-open-v28" data-id="'+company.id+'">申请余额退款</button>':'')+'</div>'+(refundRecords.length?simpleTable(['退款申请编号','申请金额 (元)','退款账户','申请原因','审批状态','申请时间','处理时间'],refundRecords.map(function(item){return [item.id,money(item.amount),esc(item.destination),esc(item.reason),badge(item.status),item.created,item.reviewed]})):'<div class="placeholder">暂无余额退款记录</div>')+'</div>';
+    }
+    enterpriseAccountBodyV27=enterpriseAccountBodyV28;
+
+    var enterpriseDetailBodyV28Base=enterpriseDetailBodyV27;
+    enterpriseDetailBodyV27=function(company){
+      if(state.detailTab==='企业资料')return '<div class="info-grid">'+info('企业编号',company.id)+info('企业名称',esc(company.name))+info('所属运营商',esc(company.operator))+info('维护主体','<span class="owner-tag-v28 '+(company.maintainedBy==='运营商维护'?'operator':'')+'">'+esc(company.maintainedBy)+'</span>')+info('联系人',esc(company.contact))+info('联系电话',esc(company.phone))+info('账户状态',badge(enterpriseAvailableBalanceV28(company)<company.threshold?'余额预警':'正常'))+info('创建时间',company.created)+info('钱包余额',money(company.balance)+' 元')+info('退款冻结',money(enterprisePendingRefundV28(company))+' 元')+info('剩余额度',money(enterpriseAvailableBalanceV28(company))+' 元')+info('余额预警阈值',money(company.threshold)+' 元')+info('单次充电限额',money(company.limit)+' 元')+info('即插即充',badge(company.plugEnabled?'启用':'停用'))+'</div>';
+      return enterpriseDetailBodyV28Base(company);
+    };
+
+    enterpriseFinanceRowsV27=function(){
+      return enterprises.map(function(company){var walletRefund=enterpriseWalletRefundsForV28(company).filter(function(item){return item.status==='已退款'}).reduce(function(sum,item){return sum+Number(item.amount||0)},0);return {id:'QYCW'+company.id.slice(-4),enterpriseId:company.id,enterpriseName:company.name,operator:company.operator,recharge:enterpriseRechargeAmountV27(company),used:enterpriseUsedAmountV27(company),refund:walletRefund,remaining:enterpriseAvailableBalanceV28(company),vehicles:enterpriseVehicleCountV27(company),status:enterpriseAvailableBalanceV28(company)<company.threshold?'余额预警':'正常',date:'2026-09-02'}})
+    };
+
+    function renderRefundsV28(){
+      var orderRows=refunds.map(function(item){var order=orderById(item.orderId),user=order?userById(order.userId):null;return {id:item.id,type:'充电订单退款',subject:user?user.nickname:'—',relation:item.orderId,amount:item.amount,destination:'原支付账户',reason:item.reason,status:item.status,created:item.time,reviewed:item.status==='待审批'?'—':item.time,kind:'refund'}}),walletRows=enterpriseWalletRefundsV28.map(function(item){var company=enterpriseCompanyV27(item.enterpriseId);return {id:item.id,type:'企业钱包退款',subject:company?company.name:'—',relation:company?company.id:item.enterpriseId,amount:item.amount,destination:item.destination,reason:item.reason,status:item.status,created:item.created,reviewed:item.reviewed,kind:'enterprise-wallet-refund-v28'}}),records=orderRows.concat(walletRows).filter(match),paid=records.filter(function(item){return item.status==='已退款'}).reduce(function(sum,item){return sum+Number(item.amount||0)},0);
+      $('content').innerHTML=metrics([{label:'退款申请',value:records.length,icon:'↶'},{label:'待财务审批',value:records.filter(function(item){return item.status==='待审批'}).length,icon:'◷',className:'metric-warning'},{label:'企业钱包退款',value:walletRows.length,icon:'▦'},{label:'已退款金额',value:money(paid),unit:'元',icon:'¥'}])+'<section class="surface">'+querybar('搜索退款编号、订单号、企业或用户')+toolbar('退款审批',records.length,'<button class="btn" data-action="export">导出 Excel</button>')+renderTable(['退款申请编号','退款类型','企业 / 用户','关联订单 / 账户','申请金额 (元)','退款去向','申请原因','审批状态','申请时间','处理时间'],records,function(item){return '<tr><td class="code">'+item.id+'</td><td>'+esc(item.type)+'</td><td><strong>'+esc(item.subject)+'</strong></td><td class="code">'+esc(item.relation)+'</td><td><strong>'+money(item.amount)+'</strong></td><td>'+esc(item.destination)+'</td><td>'+esc(item.reason)+'</td><td>'+badge(item.status)+'</td><td>'+item.created+'</td><td>'+item.reviewed+'</td><td class="actions">'+actionButton(item.kind,item.id)+'</td></tr>'})+'</section>';
+    }
+    renderRefunds=renderRefundsV28;
+
+    var menuActionsV28Base=menuActions;
+    menuActions=function(kind){
+      if(kind==='enterprise'){var company=enterpriseCompanyV27(state.menuRecordIdV27),items=[['查看企业详情','detail'],['车辆管理','enterprise-vehicles-v27']];if(company&&enterpriseCanRefundV28(company))items.push(['申请余额退款','enterprise-wallet-refund-v28']);items.push(['登记对公充值','recharge'],['编辑企业','edit']);return items}
+      if(kind==='enterprise-wallet-refund-v28'){var refund=enterpriseWalletRefundsV28.find(function(item){return item.id===state.menuRecordIdV27}),result=[['查看退款详情','enterprise-wallet-refund-detail-v28']];if(refund&&refund.status==='待审批')result.push(['财务审批通过','enterprise-wallet-refund-approve-v28'],['驳回申请','enterprise-wallet-refund-reject-v28']);return result}
+      return menuActionsV28Base(kind);
+    };
+
+    var applyMenuV28Base=applyMenu;
+    applyMenu=function(command,kind,id){
+      if(command==='enterprise-wallet-refund-v28'){var company=enterpriseCompanyV27(id);if(company&&enterpriseCanRefundV28(company))openEnterpriseWalletRefundV28(company);return}
+      if(command==='enterprise-wallet-refund-detail-v28'){var detail=enterpriseWalletRefundsV28.find(function(item){return item.id===id}),detailCompany=detail?enterpriseCompanyV27(detail.enterpriseId):null;if(detail)openModal('企业钱包退款详情','<div class="info-grid">'+info('退款申请编号',detail.id)+info('企业名称',esc(detailCompany?detailCompany.name:'—'))+info('所属运营商',esc(detailCompany?detailCompany.operator:'—'))+info('申请金额',money(detail.amount)+' 元')+info('退款账户',esc(detail.destination))+info('审批状态',badge(detail.status))+info('申请时间',detail.created)+info('处理时间',detail.reviewed)+info('处理人',esc(detail.reviewer))+info('申请原因',esc(detail.reason))+'</div>',[]);return}
+      if(command==='enterprise-wallet-refund-approve-v28'||command==='enterprise-wallet-refund-reject-v28'){var target=enterpriseWalletRefundsV28.find(function(item){return item.id===id});if(!target||target.status!=='待审批'){showToast('仅待审批记录可以执行审批操作');return}var targetCompany=enterpriseCompanyV27(target.enterpriseId);if(command==='enterprise-wallet-refund-approve-v28'){if(Number(target.amount)>Number(targetCompany.balance)){showToast('企业钱包余额不足，无法完成退款');return}targetCompany.balance=Number((targetCompany.balance-Number(target.amount)).toFixed(2));target.status='已退款'}else target.status='已驳回';target.reviewed='2026-09-02 14:35';target.reviewer='周财务';targetCompany.status=enterpriseAvailableBalanceV28(targetCompany)<targetCompany.threshold?'余额预警':'正常';render();showToast(command==='enterprise-wallet-refund-approve-v28'?'财务审批通过，企业钱包退款已执行':'企业钱包退款申请已驳回');return}
+      applyMenuV28Base(command,kind,id);
+    };
+
+    document.addEventListener('click',function(event){
+      var button=event.target.closest('[data-action]');if(!button)return;var action=button.dataset.action;
+      if(action==='enterprise-scope-v28'){event.preventDefault();event.stopImmediatePropagation();state.enterpriseScopeV28=button.dataset.scope;state.keyword='';state.filters={};state.pageNo=1;render();return}
+      if(action==='enterprise-wallet-refund-open-v28'){event.preventDefault();event.stopImmediatePropagation();var company=enterpriseCompanyV27(button.dataset.id);if(company&&enterpriseCanRefundV28(company))openEnterpriseWalletRefundV28(company);return}
+      if(action==='enterprise-wallet-refund-submit-v28'){
+        event.preventDefault();event.stopImmediatePropagation();var targetCompany=enterpriseCompanyV27(button.dataset.id),amount=Number(getValue('enterprise-refund-amount-v28')),reason=getValue('enterprise-refund-reason-v28').trim(),available=enterpriseAvailableBalanceV28(targetCompany);
+        if(!enterpriseCanRefundV28(targetCompany)){showToast('该企业已有待审批退款，不能重复申请');return}
+        if(!amount||amount<=0){showToast('请输入正确的退款金额');return}
+        if(amount>available){showToast('退款金额不能超过可退款余额');return}
+        if(!reason){showToast('请填写退款原因');return}
+        enterpriseWalletRefundsV28.unshift({id:'QYTK202609'+String(enterpriseWalletRefundsV28.length+1).padStart(3,'0'),enterpriseId:targetCompany.id,amount:Number(amount.toFixed(2)),reason:reason,destination:'原对公付款账户',status:'待审批',created:'2026-09-02 14:20',reviewed:'—',reviewer:'—'});targetCompany.status=enterpriseAvailableBalanceV28(targetCompany)<targetCompany.threshold?'余额预警':'正常';closeModal();render();showToast('企业钱包退款申请已提交财务审批');return
+      }
+    },true);
+
     /* The station detail renderer already omits the charging-order tab; retain that source behavior. */
     render();
   </script>
