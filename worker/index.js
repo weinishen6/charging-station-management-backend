@@ -1183,7 +1183,7 @@ const page = `<!doctype html>
 
     var orderListBodyV29Base=orderListBodyV21;
     orderListBodyV21=function(records){
-      var html=orderListBodyV29Base(records);html=html.replace(/<span class="enterprise-order-tag-v27">企业订单 · [^<]*<\/span>/g,'<span class="enterprise-order-tag-v27">企业订单</span>');
+      var html=orderListBodyV29Base(records);enterprises.forEach(function(company){var oldTag='<span class="enterprise-order-tag-v27">企业订单 · '+esc(company.name)+'</span>';html=html.split(oldTag).join('<span class="enterprise-order-tag-v27">企业订单</span>')});
       if(state.orderColumnView==='full'){html=html.replace('<th rowspan="2">所属场站 / 运营商</th>','<th rowspan="2">企业名称</th><th rowspan="2">所属场站 / 运营商</th>').replace('colspan="19"','colspan="20"');rowsPage(records).forEach(function(order){var idNeedle='<strong class="code">'+esc(order.id)+'</strong>',idIndex=html.indexOf(idNeedle);if(idIndex===-1)return;var cellEnd=html.indexOf('</td>',idIndex);if(cellEnd===-1)return;var company=order.enterpriseId?enterpriseCompanyV27(order.enterpriseId):null,cell='<td class="order-enterprise-v29">'+(company?'<strong>'+esc(company.name)+'</strong><span class="subtext">'+esc(company.id)+'</span>':'—')+'</td>';html=html.slice(0,cellEnd+5)+cell+html.slice(cellEnd+5)})}return html
     };
 
@@ -1193,6 +1193,24 @@ const page = `<!doctype html>
     }
     var renderV29Base=render;
     render=function(){if(!state.detail&&state.page==='企业财务'){buildNavigation();renderEnterpriseFinanceV29();window.scrollTo(0,0);return}renderV29Base()};
+
+    /* V30 vehicle hover actions and runtime-safe rendering */
+    var styleV30=document.createElement('style');
+    styleV30.textContent='.vehicle-hover-v30{position:relative;display:inline-flex;justify-content:flex-end}.vehicle-hover-trigger-v30{width:34px;height:32px;border:1px solid var(--line);border-radius:7px;background:#fff;color:#475467;font-size:18px;line-height:1;cursor:pointer}.vehicle-hover-trigger-v30:hover,.vehicle-hover-v30:focus-within .vehicle-hover-trigger-v30{border-color:#84adff;color:#175cd3;background:#f5f8ff}.vehicle-hover-menu-v30{display:none;position:absolute;right:0;top:calc(100% + 4px);z-index:1400;min-width:92px;padding:5px;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(16,24,40,.14)}.vehicle-hover-v30:hover .vehicle-hover-menu-v30,.vehicle-hover-v30:focus-within .vehicle-hover-menu-v30{display:grid}.vehicle-hover-menu-v30 button{border:0;background:transparent;text-align:left;padding:8px 10px;border-radius:6px;color:#344054;cursor:pointer;white-space:nowrap}.vehicle-hover-menu-v30 button:hover{background:#f2f4f7;color:#175cd3}.vehicle-hover-menu-v30 button.danger{color:#d92d20}.vehicle-hover-menu-v30 button.danger:hover{background:#fff1f0}.table tbody tr:last-child .vehicle-hover-menu-v30{top:auto;bottom:calc(100% + 4px)}';
+    document.head.appendChild(styleV30);
+
+    function enterpriseVehicleDetailV30(vehicle){
+      var company=enterpriseCompanyV27(vehicle.enterpriseId);
+      openModal('企业车辆详情 · '+vehicle.plate,'<div class="info-grid">'+info('车辆编号',vehicle.id)+info('所属运营商',esc(company?company.operator:'—'))+info('关联企业',esc(company?company.name:'—'))+info('车牌号码',esc(vehicle.plate))+info('车辆 VIN',esc(vehicle.vin))+info('车辆类型',esc(vehicle.vehicleType))+info('司机 / 负责人',esc(vehicle.driver||'—'))+info('联系电话',esc(vehicle.phone||'—'))+info('创建时间',vehicle.created)+'</div>',[]);
+    }
+    renderEnterpriseVehiclesV27=function(){
+      var enriched=enterpriseVehiclesV27.map(function(vehicle){var company=enterpriseCompanyV27(vehicle.enterpriseId);return Object.assign({},vehicle,{enterpriseName:company?company.name:'—',operator:company?company.operator:'—'})}),scoped=state.enterpriseScopeV28==='operator'?enriched.filter(function(vehicle){return vehicle.operator===state.currentOperatorV28}):enriched,records=scoped.filter(match);
+      $('content').innerHTML=metrics([{label:'车辆档案',value:scoped.length,icon:'◈'},{label:'关联企业',value:new Set(scoped.map(function(vehicle){return vehicle.enterpriseId})).size,icon:'▦'},{label:'乘用车',value:scoped.filter(function(vehicle){return vehicle.vehicleType==='乘用车'}).length,icon:'◇'},{label:'商用车辆',value:scoped.filter(function(vehicle){return vehicle.vehicleType!=='乘用车'}).length,icon:'▤'}])+'<section class="surface">'+querybar('搜索车牌号、VIN或司机')+toolbar('企业车辆管理',records.length,'<button class="btn btn-primary" data-action="enterprise-vehicle-new-v27">＋ 新增车辆</button><button class="btn" data-action="export">导出 Excel</button>')+renderTable(['车辆编号','所属运营商','关联企业','车牌号码','车辆 VIN','车辆类型','司机 / 负责人','联系电话','创建时间'],records,function(vehicle){return '<tr><td class="code">'+vehicle.id+'</td><td>'+esc(vehicle.operator)+'</td><td>'+esc(vehicle.enterpriseName)+'</td><td><strong>'+esc(vehicle.plate)+'</strong></td><td class="code">'+esc(vehicle.vin)+'</td><td><span class="vehicle-type-v27">'+esc(vehicle.vehicleType)+'</span></td><td>'+esc(vehicle.driver||'—')+'</td><td>'+esc(vehicle.phone||'—')+'</td><td>'+vehicle.created+'</td><td class="actions"><div class="vehicle-hover-v30"><button class="vehicle-hover-trigger-v30" aria-label="车辆操作" title="悬停查看操作">⋯</button><div class="vehicle-hover-menu-v30"><button data-action="enterprise-vehicle-detail-v30" data-id="'+vehicle.id+'">详情</button><button data-action="enterprise-vehicle-edit-v27" data-id="'+vehicle.id+'">编辑</button><button class="danger" data-action="enterprise-vehicle-delete-v27" data-id="'+vehicle.id+'">删除</button></div></div></td></tr>'})+'</section>';
+    };
+    document.addEventListener('click',function(event){
+      var button=event.target.closest('[data-action]');if(!button)return;
+      if(button.dataset.action==='enterprise-vehicle-detail-v30'){event.preventDefault();event.stopImmediatePropagation();var vehicle=enterpriseVehiclesV27.find(function(item){return item.id===button.dataset.id});if(vehicle)enterpriseVehicleDetailV30(vehicle)}
+    },true);
 
     /* The station detail renderer already omits the charging-order tab; retain that source behavior. */
     render();
