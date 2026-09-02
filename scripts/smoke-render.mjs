@@ -149,6 +149,9 @@ if (pileCards.includes("批量操作")) throw new Error("充电桩卡片模式�
 assertIncludes(pileCards, "批量导入", "充电桩批量导入入口");
 assertIncludes(pileCards, "设备类型", "充电桩统计新维度");
 if (pileCards.includes("连接状态")) throw new Error("充电桩顶部仍包含重复的连接状态统计");
+if (pileCards.includes("toggle-pile-enabled") || pileCards.includes("pile-toggle")) {
+  throw new Error("充电桩卡片仍包含启停开关");
+}
 const pileForm = context.pileForm(context.piles[0]);
 if (pileForm.includes("充电枪配置") || pileForm.includes("f-gun-type")) {
   throw new Error("充电桩表单仍包含充电枪配置区域");
@@ -171,6 +174,9 @@ assertIncludes(pileListV12, "批量固件升级", "充电桩批量固件升级�
 assertIncludes(pileListV12, "批量重启", "充电桩批量重启入口");
 assertIncludes(pileListV12, "批量设备对时", "充电桩批量设备对时入口");
 if (!pileListV12.includes("disabled")) throw new Error("充电桩暂未开放的批量操作未禁用");
+if (pileListV12.includes("toggle-pile-enabled") || pileListV12.includes("pile-toggle")) {
+  throw new Error("充电桩列表仍包含启停开关");
+}
 const pileActionsV12 = context.menuActions("pile");
 for (const label of ["重启设备", "设备对时", "固件升级"]) {
   const item = pileActionsV12.find((action) => action[0] === label);
@@ -296,7 +302,10 @@ context.state.filters = {};
 context.render();
 const userListV14 = elements.get("content").innerHTML;
 assertIncludes(userListV14, "启用状态", "用户列表启用状态");
-assertIncludes(userListV14, "user-status-switch", "用户启停开关");
+if (userListV14.includes("user-status-switch") || userListV14.includes("user-status-toggle-v14")) {
+  throw new Error("用户列表仍包含启停开关");
+}
+assertIncludes(userListV14, "启用", "用户列表只读启用状态");
 assertIncludes(userListV14, "车辆数量", "用户列表车辆数量");
 if (!context.users.some((user) => user.vehicles.length > 1)) throw new Error("用户数据未体现多车辆与 VIN");
 context.state.detail = { kind: "user", id: context.users[0].id, title: context.users[0].nickname };

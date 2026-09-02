@@ -157,7 +157,7 @@ const freeUsers = elements.get("content").innerHTML;
 for (const label of ["用户列表", "用户分组", "免费用户", "请输入用户昵称或手机号", "运营商维度", "场站维度", "免费额度"]) includes(freeUsers, label, "免费用户页签");
 if (freeUsers.includes("规则编号") || freeUsers.includes("单次额度")) throw new Error("免费用户列表仍包含已删除字段");
 const freeForm = context.freeUserForm(null);
-for (const label of ["搜索用户昵称或手机号", "元/月", "配置维度", "范围方式", "运营商维度", "场站维度", "全部", "指定"]) includes(freeForm, label, "免费用户配置");
+for (const label of ["搜索用户昵称或手机号", "元/月", "配置维度", "范围方式", "运营商维度", "场站维度", "全部", "指定", "启用状态"]) includes(freeForm, label, "免费用户配置");
 if (freeForm.includes("f-limit") || freeForm.includes("单次额度")) throw new Error("免费用户表单仍包含单次额度");
 for (const label of ["choice-grid-v25", 'name="free-dimension-v25"', 'name="free-mode-v25"']) includes(freeForm, label, "免费用户平铺单选交互");
 if (!context.freeUsers.some((item) => item.quotaValue > 0)) throw new Error("免费用户额度解析失败");
@@ -202,10 +202,27 @@ context.state.keyword = "";
 context.state.filters = {};
 context.render();
 const rechargePackages = elements.get("content").innerHTML;
-for (const label of ["新建充值套餐", "充值金额", "赠送金额", "到账金额", "启用状态", "user-status-switch"]) includes(rechargePackages, label, "充值套餐管理");
+for (const label of ["新建充值套餐", "充值金额", "赠送金额", "到账金额", "累计充值金额", "启用状态"]) includes(rechargePackages, label, "充值套餐管理");
+if (rechargePackages.includes("user-status-switch") || rechargePackages.includes("recharge-package-toggle-v25")) {
+  throw new Error("充值套餐列表仍包含启停开关");
+}
+const rechargePackageActions = context.menuActions("recharge-package-v26").flat();
+for (const label of ["查看详情", "编辑"]) includes(rechargePackageActions.join("/"), label, "充值套餐更多菜单");
+if (rechargePackageActions.some((item) => ["启用", "停用", "stop", "enable", "disable"].includes(item))) {
+  throw new Error("充值套餐更多菜单仍包含启停操作");
+}
 context.rechargePackageModalV25(context.rechargePackagesV25[2]);
 for (const label of ["优惠金额 / 赠送金", "有效期方式", "生效日期", "失效日期", "启用状态", "停用套餐只影响新用户购买"]) {
   includes(elements.get("modalBody").innerHTML, label, "充值套餐配置");
+}
+context.rechargePackageModalV25(context.rechargePackagesV25.find((item) => item.effectiveType === "长期有效"));
+includes(elements.get("modalBody").innerHTML, 'recharge-package-dates-v26 hidden', "长期有效隐藏日期区间");
+context.rechargePackageDetailV26(context.rechargePackagesV25[0]);
+for (const label of ["套餐编号", "充值金额", "到账金额", "启用状态", "仅可在编辑充值套餐时修改"]) {
+  includes(elements.get("modalBody").innerHTML, label, "充值套餐详情");
+}
+if (context.menuActions("membership").flat().includes("stop") || context.menuActions("free-user").flat().includes("stop")) {
+  throw new Error("列表更多菜单仍包含启停操作");
 }
 
 context.state.page = "充电投诉";
