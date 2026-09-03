@@ -5,8 +5,9 @@ import { V31_SCRIPT_3 } from "./v31-3.js";
 import { V31_SCRIPT_4 } from "./v31-4.js";
 import { V32_SCRIPT } from "./v32.js";
 import { V33_SCRIPT } from "./v33.js";
+import { V34_SCRIPT } from "./v34.js";
 
-const PATCH_SCRIPT = V31_SCRIPT_1 + "\n" + V31_SCRIPT_2 + "\n" + V31_SCRIPT_3 + "\n" + V31_SCRIPT_4 + "\n" + V32_SCRIPT + "\n" + V33_SCRIPT;
+const PATCH_SCRIPT = V31_SCRIPT_1 + "\n" + V31_SCRIPT_2 + "\n" + V31_SCRIPT_3 + "\n" + V31_SCRIPT_4 + "\n" + V32_SCRIPT + "\n" + V33_SCRIPT + "\n" + V34_SCRIPT;
 
 export default {
   async fetch(request, env, ctx) {

@@ -11,6 +11,7 @@ cp "$project_root/worker/base-v30.js" "$dist_root/server/base-v30.js"
 cp "$project_root/worker/v31-"*.js "$dist_root/server/"
 cp "$project_root/worker/v32.js" "$dist_root/server/v32.js"
 cp "$project_root/worker/v33.js" "$dist_root/server/v33.js"
+cp "$project_root/worker/v34.js" "$dist_root/server/v34.js"
 cp "$project_root/.openai/hosting.json" "$dist_root/.openai/hosting.json"
 
 echo "Built $dist_root"
