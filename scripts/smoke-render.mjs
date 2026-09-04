@@ -18,17 +18,54 @@ class StubElement {
   }
   addEventListener() {}
   getBoundingClientRect() { return { top: 0, left: 0, right: 0, bottom: 0, width: 100, height: 100 }; }
+  appendChild() {}
+  insertAdjacentHTML() {}
+  querySelector() { return null; }
+  querySelectorAll() { return []; }
+  setAttribute() {}
+  removeAttribute() {}
+  removeChild() {}
+  getAttribute() { return null; }
+  contains() { return false; }
+  focus() {}
+  blur() {}
+  click() {}
 }
 
 const elements = new Map();
+const StubElementPrototype = {
+  addEventListener() {},
+  getBoundingClientRect() { return { top: 0, left: 0, right: 0, bottom: 0, width: 100, height: 100 }; },
+  appendChild() {},
+  insertAdjacentHTML() {},
+  querySelector() { return null; },
+  querySelectorAll() { return []; },
+  setAttribute() {},
+  removeAttribute() {},
+  removeChild() {},
+  getAttribute() { return null; },
+  contains() { return false; },
+  focus() {},
+  blur() {},
+};
+function makeStub(){
+  return Object.assign(Object.create(StubElementPrototype), {
+    innerHTML: "", textContent: "", value: "", checked: false, style: {}, dataset: {},
+    classList: { add() {}, remove() {}, toggle() {}, contains() { return false; } },
+  });
+}
 const document = {
   getElementById(id) {
-    if (!elements.has(id)) elements.set(id, new StubElement());
+    if (!elements.has(id)) elements.set(id, makeStub());
     return elements.get(id);
   },
   addEventListener() {},
   querySelectorAll() { return []; },
   querySelector() { return null; },
+  createElement() { return makeStub(); },
+  createTextNode() { return makeStub(); },
+  head: Object.assign(makeStub(), { appendChild() {}, insertAdjacentHTML() {} }),
+  body: makeStub(),
 };
 const window = { document, scrollTo() {}, innerWidth: 1440, innerHeight: 1000 };
 const context = vm.createContext({
@@ -73,11 +110,8 @@ context.state.detailTab = "活动对象";
 context.render();
 assertIncludes(elements.get("content").innerHTML, "campaign-target-summary-card", "活动对象详情层级");
 assertIncludes(elements.get("content").innerHTML, "campaign-detail-section-title", "活动对象详情标题");
-context.state.detailTab = "效果数据";
-context.render();
-assertIncludes(elements.get("content").innerHTML, "campaignEffectStart", "效果数据日期筛选");
-assertIncludes(elements.get("content").innerHTML, "2026-08-26", "效果数据默认当天");
-assertIncludes(elements.get("content").innerHTML, "订单原价", "效果数据明细");
+const tabsAfter = elements.get("content").innerHTML;
+if (tabsAfter.includes("效果数据")) throw new Error("活动详情仍包含已删除的「效果数据」Tab");
 context.state.detail = null;
 
 context.state.page = "用户管理";
