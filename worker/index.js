@@ -1405,7 +1405,7 @@ const page = `<!doctype html>
     if(operationsNavV38)operationsNavV38.items=operationsNavV38.items.filter(function(item){return item[0]!=='道闸管理'});
     var marketingNavV38=navigation.find(function(section){return section.group==='营销活动'});
     if(marketingNavV38)marketingNavV38.items=marketingNavV38.items.filter(function(item){return item[0]!=='优惠券管理'});
-    if(!navigation.some(function(section){return section.group==='平台对接'})){var operationsIndexV38=navigation.findIndex(function(section){return section.group==='运营管理'});navigation.splice(operationsIndexV38<0?0:operationsIndexV38+1,0,{group:'平台对接',items:[['道闸管理','▣']]})}
+    if(!navigation.some(function(section){return section.group==='平台对接'})){navigation.push({group:'平台对接',items:[['道闸管理','▣']]})}
 
     var gateSystemsV38=[
       {id:'DZ20260001',name:'未来科技城停车接入',parkingSystem:'捷顺停车云',accessType:'开放 API',endpoint:'https://parking-api.example.com/jieshun',appId:'APP-JS-260018',appSecret:'••••••••••••',parkingLotId:'PARK-HZ-018',parkingLotName:'未来科技城停车场',acReductionMinutes:120,dcReductionMinutes:180,status:'启用',updated:'2026-09-04 10:30',remark:'充电订单完成后按充电桩类型下发停车减免时长'},
